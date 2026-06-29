@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+/* When sidebar is open, shift the main #root content to the right by sidebar width (16rem) */
+#root.sidebar-open {
+  transform: translateX(16rem);
+  transition: transform 0.2s ease-in-out;
+}
+
+/* prevent horizontal scroll when shifted */
+body {
+  overflow-x: hidden;
+}
+
+/* Lớp tạo môi trường 3D */
+.perspective-3d {
+  perspective: 1000px;
+}
+
+/* Lớp giữ nguyên trạng thái 3D cho các phần tử con */
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+/* Lớp giấu mặt đối diện khi lật ra sau */
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+/* Lớp xoay 180 độ theo trục Y */
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
