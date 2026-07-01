@@ -15,10 +15,13 @@ public class StudySet {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false )
     private String titleName;
 
     private String description;
+
+    @Column(nullable = false , unique = true)
+    private String slug;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
