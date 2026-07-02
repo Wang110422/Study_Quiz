@@ -15,7 +15,7 @@ public class Vocabulary {
     private String term;
 
     @Column(nullable = false)
-    private String definition;
+        private String definition;
 
     @ManyToOne
     @JoinColumn(name = "studyset_id")

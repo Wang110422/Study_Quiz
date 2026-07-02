@@ -28,4 +28,8 @@ public class StudySet {
 
     @OneToMany(mappedBy = "studySet")
     private List<Vocabulary> vocabularies ;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
 }
