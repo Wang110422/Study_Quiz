@@ -1,0 +1,52 @@
+{
+    "name": "Quizlet Extension",
+    "version": "1.0",
+    "description": "Cho phép người dùng có thể tra cứu và lưu bộ thẻ vào file excel fds",
+    "manifest_version": 3,
+    "background": {
+        "service_worker": "js/background.js"
+    },
+    "permissions": [
+        "sidePanel",
+        "tabs",
+        "storage",
+        "cookies",
+        "scripting"
+    ],
+    "host_permissions": [
+        "https://translate.googleapis.com/*",
+        "https://api.mymemory.translated.net/*",
+        "http://localhost:8080/*",
+        "http://localhost:5173/*"
+    ],
+    "side_panel": {
+        "default_path": "sidepanel/sidepanel.html"
+    },
+    "action": {
+        "default_title": "Mở trợ lý"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "<all_urls>"
+            ],
+            "js": [
+                "js/content.js"
+            ],
+            "css": [
+                "css/style.css"
+            ]
+        }
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "tooltip/tooltip.html",
+                "tooltip/tooltip.css"
+            ],
+            "matches": [
+                "<all_urls>"
+            ]
+        }
+    ]
+}

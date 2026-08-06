@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VocaLearn Trợ Lý</title>
+    <link rel="stylesheet" href="sidepanel.css">
+</head>
+
+<body>
+
+    <!-- ===== HEADER ===== -->
+    <div class="header">
+        <div class="brand">
+            <div class="logo-icon">📚</div>
+            <div class="brand-text">
+                <span class="title">VocaLearn</span>
+                <span class="subtitle" id="user-status-text">Chế độ cục bộ</span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <!-- Avatar Button (Chưa đăng nhập -> 🔑, Đã đăng nhập -> Square/Circle Avatar với Chữ cái đầu) -->
+            <button class="avatar-btn offline" id="avatar-btn" title="Tài khoản VocaLearn">
+                <span id="avatar-text">🔑</span>
+            </button>
+
+            <!-- User Profile Dropdown Menu Popup -->
+            <div class="avatar-dropdown" id="avatar-dropdown" style="display: none;">
+                <div class="user-header-info">
+                    <div class="user-avatar-large" id="dropdown-user-avatar">N</div>
+                    <div class="user-details">
+                        <h4 class="user-name" id="dropdown-user-name">Khách (Offline)</h4>
+                        <p class="user-email" id="dropdown-user-email">Chưa đăng nhập</p>
+                    </div>
+                </div>
+
+                <div class="dropdown-divider"></div>
+
+                <div class="dropdown-menu-list">
+                    <div class="dropdown-item info-item">
+                        <span class="item-icon">📌</span>
+                        <div class="item-text">
+                            <span class="item-title">Trạng thái kết nối</span>
+                            <span class="item-sub" id="dropdown-conn-status">Cục bộ (Chrome Storage)</span>
+                        </div>
+                    </div>
+
+                    <button class="dropdown-item action-item" id="dropdown-sync-btn">
+                        <span class="item-icon">🔄</span>
+                        <span>Đồng bộ dữ liệu với Web</span>
+                    </button>
+
+                    <div class="dropdown-divider"></div>
+
+                    <!-- Nút Đăng nhập hoặc Đăng xuất -->
+                    <button class="dropdown-item action-item primary" id="dropdown-auth-btn">
+                        <span class="item-icon" id="dropdown-auth-icon">🔑</span>
+                        <span id="dropdown-auth-text">Đăng nhập VocaLearn</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== ACTION & SYNC BAR ===== -->
+    <div class="action-bar">
+        <button class="btn btn-primary flex-1" id="sync-btn">
+            <span class="sync-icon">🔄</span> Đồng bộ với Web
+        </button>
+        <button class="btn btn-secondary" id="btn-create-modal" title="Tạo thư mục hoặc bộ thẻ mới">
+            ➕ Tạo mới
+        </button>
+    </div>
+
+    <!-- Banner trạng thái đăng nhập/đồng bộ -->
+    <div id="status-banner" class="status-banner info" style="display: none;">
+        <span id="status-banner-text">Đã đồng bộ dữ liệu</span>
+    </div>
+
+    <!-- ===== TAB NAVIGATION ===== -->
+    <div class="tabs-nav">
+        <button class="tab-btn active" data-tab="folders">📁 Thư mục</button>
+        <button class="tab-btn" data-tab="studysets">📚 Bộ từ vựng</button>
+    </div>
+
+    <!-- ===== SCROLLABLE CONTENT ===== -->
+    <div class="content-scroll">
+
+        <!-- TAB 1: THƯ MỤC (FOLDERS) -->
+        <div class="tab-content active" id="tab-folders">
+            <div class="section-header">
+                <h2 class="section-title">DANH SÁCH THƯ MỤC</h2>
+                <button class="small-add-btn" id="add-folder-btn">+ Thư mục mới</button>
+            </div>
+
+            <!-- Form tạo thư mục nhanh (Ẩn mặc định) -->
+            <div className="quick-form-card" id="form-create-folder" style="display: none;">
+                <h3 class="form-title">Tạo Thư Mục Mới</h3>
+                <input type="text" id="input-folder-name" class="form-input" placeholder="Tên thư mục (VD: Tiếng Anh, Hóa 12...)" />
+                <input type="text" id="input-folder-desc" class="form-input mt-2" placeholder="Mô tả ngắn..." />
+                <div class="form-actions mt-3">
+                    <button class="btn btn-sm btn-secondary" id="btn-cancel-folder">Hủy</button>
+                    <button class="btn btn-sm btn-primary" id="btn-save-folder">Lưu Thư Mục</button>
+                </div>
+            </div>
+
+            <div class="card-grid" id="folders-grid">
+                <!-- Rendered by JS -->
+            </div>
+        </div>
+
+        <!-- TAB 2: BỘ TỪ VỰNG (STUDYSETS) -->
+        <div class="tab-content" id="tab-studysets">
+            <div class="section-header">
+                <h2 class="section-title">BỘ TỪ VỰNG ĐÃ LƯU</h2>
+                <button class="small-add-btn" id="add-set-btn">+ Bộ thẻ mới</button>
+            </div>
+
+            <!-- Form tạo bộ từ vựng nhanh (Ẩn mặc định) -->
+            <div class="quick-form-card" id="form-create-set" style="display: none;">
+                <h3 class="form-title">Tạo Bộ Từ Vựng Mới</h3>
+                <input type="text" id="input-set-name" class="form-input" placeholder="Tên bộ từ vựng (VD: Từ vựng TOEIC...)" />
+                <select id="select-set-folder" class="form-select mt-2">
+                    <!-- Dynamic Folders -->
+                </select>
+                <div class="form-actions mt-3">
+                    <button class="btn btn-sm btn-secondary" id="btn-cancel-set">Hủy</button>
+                    <button class="btn btn-sm btn-primary" id="btn-save-set">Lưu Bộ Thẻ</button>
+                </div>
+            </div>
+
+            <div class="sets-list" id="studysets-list">
+                <!-- Rendered by JS -->
+            </div>
+        </div>
+
+        <!-- MÀN HÌNH XEM CHI TIẾT DANH SÁCH TỪ VỰNG CỦA 1 BỘ THẺ -->
+        <div class="set-detail-view" id="set-detail-view" style="display: none;">
+            <div class="detail-header mb-3">
+                <button class="btn-back" id="btn-back-to-sets">← Quay lại danh sách</button>
+                <div class="detail-title-box mt-2">
+                    <h2 class="detail-set-title" id="detail-set-title">Tên bộ từ vựng</h2>
+                    <span class="detail-set-meta" id="detail-set-meta">0 từ vựng</span>
+                </div>
+            </div>
+
+            <div class="vocab-list" id="detail-vocab-list">
+                <!-- Rendered by JS -->
+            </div>
+        </div>
+
+    </div>
+
+    <script src="sidepanel.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,199 @@
+<!-- ============================================ -->
+<!-- SCREEN 1: MÀN HÌNH DỊCH (mặc định)         -->
+<!-- ============================================ -->
+<div class="tooltip-screen active" id="screen-translate">
+    <!-- Khung chọn ngôn ngữ -->
+    <div class="tooltip-lang-bar">
+        <div class="lang-selector">
+            <select class="lang-select" id="lang-source">
+                <option value="vi">🇻🇳 Vietnamese</option>
+                <option value="en">🇬🇧 English</option>
+                <option value="ja">🇯🇵 Japanese</option>
+                <option value="ko">🇰🇷 Korean</option>
+                <option value="zh">🇨🇳 Chinese</option>
+                <option value="fr">🇫🇷 French</option>
+            </select>
+        </div>
+
+        <span class="lang-arrow">➔</span>
+
+        <div class="lang-selector">
+            <select class="lang-select" id="lang-target">
+                <option value="en">🇬🇧 English</option>
+                <option value="vi">🇻🇳 Vietnamese</option>
+                <option value="ja">🇯🇵 Japanese</option>
+                <option value="ko">🇰🇷 Korean</option>
+                <option value="zh">🇨🇳 Chinese</option>
+                <option value="fr">🇫🇷 French</option>
+            </select>
+        </div>
+
+        <button class="lock-btn" id="lock-btn" title="Ghim & Di chuyển">🔓</button>
+        <span id="close-popup-x" class="tooltip-close">&times;</span>
+
+    </div>
+
+    <!-- Khung trên cùng: Từ khóa gốc -->
+    <div class="tooltip-top-header">
+        <span id="tooltip-text">...</span>
+    </div>
+
+    <!-- Khung lưới 2x2 chứa 4 công cụ dịch -->
+    <div class="tooltip-grid-container">
+        <!-- Ô 1: MyMemory -->
+        <div class="translation-card" data-engine="mymemory">
+            <div class="card-header">
+                <span class="engine-icon logo-mymemory">📝</span>
+                <span class="engine-name">MyMemory</span>
+            </div>
+            <div class="card-content loading" id="res-mymemory">Đang dịch...</div>
+        </div>
+
+        <!-- Ô 2: Google Translate -->
+        <div class="translation-card" data-engine="google">
+            <div class="card-header">
+                <span class="engine-icon logo-google">G̅</span>
+                <span class="engine-name">Google Translate</span>
+            </div>
+            <div class="card-content loading" id="res-google">Đang dịch...</div>
+        </div>
+
+        <!-- Ô 3: Papago -->
+        <div class="translation-card" data-engine="papago">
+            <div class="card-header">
+                <span class="engine-icon logo-papago">🦜</span>
+                <span class="engine-name">Papago</span>
+            </div>
+            <div class="card-content loading" id="res-papago">Đang dịch...</div>
+        </div>
+
+        <!-- Ô 4: Custom Text -->
+        <div class="translation-card" data-engine="custom">
+            <div class="card-header">
+                <span class="engine-icon">✏️</span>
+                <span class="engine-name">Custom-text</span>
+            </div>
+            <div class="card-content" id="res-custom">
+                <div class="custom-input" contenteditable="true" data-placeholder="Nhập ghi chú..."></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nút Lưu kết quả -->
+    <button id="tooltip-save-btn" class="main-save-btn">Lưu kết quả</button>
+
+    <!-- Thanh chức năng dưới cùng -->
+    <div class="tooltip-footer-actions">
+        <button class="footer-action-btn" id="btn-retranslate">
+            <span class="footer-icon">🔄</span> Dịch lại
+        </button>
+        <button class="footer-action-btn" id="btn-config">
+            <span class="footer-icon">⚙️</span> Cấu hình
+        </button>
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- SCREEN 2: XEM TRƯỚC & SỬA                   -->
+<!-- ============================================ -->
+<div class="tooltip-screen" id="screen-preview">
+    <div class="screen-header">
+        <span class="screen-title">XEM TRƯỚC & SỬA</span>
+        <span class="tooltip-close" id="close-preview-x">&times;</span>
+    </div>
+
+    <div class="preview-form">
+        <div class="form-group">
+            <label class="form-label">Từ</label>
+            <input type="text" class="form-input" id="preview-term" placeholder="—">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Nghĩa</label>
+            <input type="text" class="form-input" id="preview-definition" placeholder="—">
+        </div>
+
+        <div class="form-row">
+            <div class="form-group form-half">
+                <label class="form-label">Phát âm</label>
+                <input type="text" class="form-input" id="preview-ipa" placeholder="—">
+            </div>
+            <div class="form-group form-half">
+                <label class="form-label">Loại từ</label>
+                <input type="text" class="form-input" id="preview-type" placeholder="—">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Ví dụ</label>
+            <input type="text" class="form-input" id="preview-example" placeholder="—">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Từ đồng nghĩa</label>
+            <input type="text" class="form-input" id="preview-synonym" placeholder="phân cách bởi dấu chấm phẩy">
+        </div>
+    </div>
+
+    <div class="screen-footer-btns">
+        <button class="btn-secondary" id="btn-back-translate">Quay lại</button>
+        <button class="btn-primary" id="btn-goto-chooseset">Chọn bộ từ</button>
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- SCREEN 3: CHỌN MỘT BỘ TỪ                   -->
+<!-- ============================================ -->
+<div class="tooltip-screen" id="screen-chooseset">
+    <div class="screen-header">
+        <span class="screen-title">CHỌN THƯ MỤC & BỘ TỪ</span>
+        <span class="tooltip-close" id="close-chooseset-x">&times;</span>
+    </div>
+
+    <!-- Dropdown Chọn Thư Mục -->
+    <div class="chooseset-section" style="padding-bottom: 4px;">
+        <span class="chooseset-label">📁 CHỌN THƯ MỤC</span>
+        <select class="search-input" id="tooltip-folder-select" style="width: 100%; font-weight: 600; background: #f8fafc;">
+            <option value="all">📁 Tất cả Thư mục</option>
+        </select>
+    </div>
+
+    <!-- Thanh tìm kiếm -->
+    <div class="search-bar" style="margin-top: 6px;">
+        <input type="text" class="search-input" id="search-set-input" placeholder="Tìm bộ từ...">
+        <button class="search-btn" id="search-set-btn">🔍</button>
+    </div>
+
+    <!-- Gần đây (tags ngang) -->
+    <div class="chooseset-section">
+        <span class="chooseset-label">GẦN ĐÂY</span>
+        <div class="recent-tags" id="recent-set-tags">
+            <!-- Rendered by JS -->
+        </div>
+    </div>
+
+    <!-- Tất cả bộ từ (list dọc) -->
+    <div class="chooseset-section">
+        <span class="chooseset-label">BỘ TỪ THUỘC THƯ MỤC</span>
+        <div class="all-sets-list" id="all-sets-list">
+            <!-- Rendered by JS -->
+        </div>
+    </div>
+
+    <!-- Footer: Tạo bộ mới -->
+    <div class="chooseset-footer">
+        <button class="btn-primary btn-full" id="btn-create-new-set">+ Tạo bộ từ mới...</button>
+    </div>
+
+    <!-- Form tạo mới (ẩn mặc định) -->
+    <div class="create-set-form" id="create-set-form" style="display: none; padding: 10px; background: #f1f5f9; border-radius: 8px; margin-top: 8px;">
+        <input type="text" class="form-input" id="new-set-name" placeholder="Tên bộ từ mới...">
+        <select class="form-input" id="new-set-folder-select" style="margin-top: 6px; font-weight: 600;">
+            <!-- Dynamic Folders -->
+        </select>
+        <div class="screen-footer-btns" style="margin-top: 8px;">
+            <button class="btn-primary" id="btn-confirm-create">Tạo & Thêm</button>
+            <button class="btn-secondary btn-small" id="btn-cancel-create">Hủy</button>
+        </div>
+    </div>
+</div>
