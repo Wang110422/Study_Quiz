@@ -11,6 +11,17 @@ const VocabularyService = {
             console.error("Error fetching vocabulary by slug:", error);
             throw error;
         }
+    },
+
+    deleteVocabulary: async (id: number): Promise<boolean> => {
+        try {
+            const response = await api.delete(`/vocabularies/${id}`);
+            return response.data?.result || false;
+        } catch (error) {
+            console.error("Error deleting vocabulary:", error);
+            return false;
+        }
     }
 };
+
 export default VocabularyService;

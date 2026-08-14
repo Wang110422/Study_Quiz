@@ -13,7 +13,7 @@ interface FlashCardControlProps {
 const FlashCardControl = ({ currentIndex, totalCards, onNext, onPrev, onPlay, onSetting, onFullscreen }: FlashCardControlProps) => {
     const rightBtnStyles = "rounded-full w-10 h-10 p-0 text-gray-500 hover:text-gray-800 hover:bg-gray-100";
     return (
-        <div className="w-full max-w-4xl mx-auto flex items-center justify-between p-4 relative">
+        <div className="w-full max-w-5xl mx-auto flex items-center justify-between p-2 relative">
 
             {/* 1. Khoảng trống bên trái (để giữ cụm điều hướng luôn nằm THẲNG CHÍNH GIỮA trang) */}
             <div className="w-40 hidden sm:block"></div>

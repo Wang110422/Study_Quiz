@@ -40,5 +40,15 @@ public class VocabularyController {
         response.setMessage("Success");
         response.setResult(vocabularies);
         return ResponseEntity.ok(response);
-        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<APIResponse<Boolean>> deleteVocabulary(@PathVariable Long id) {
+        boolean deleted = vocabularyService.softDeleteVocabulary(id);
+        APIResponse<Boolean> response = new APIResponse<>();
+        response.setStatus(HttpStatus.OK.value());
+        response.setMessage(deleted ? "Đã xóa từ vựng thành công" : "Xóa thất bại");
+        response.setResult(deleted);
+        return ResponseEntity.ok(response);
+    }
 }

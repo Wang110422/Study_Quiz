@@ -1,7 +1,10 @@
 package quizlet.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 @Entity
 @Data
@@ -15,9 +18,15 @@ public class Vocabulary {
     private String term;
 
     @Column(nullable = false)
-        private String definition;
+    private String definition;
+
+    @Column(name = "is_del")
+    private Boolean isDel = false;
 
     @ManyToOne
     @JoinColumn(name = "studyset_id")
+    @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private StudySet studySet;
 }

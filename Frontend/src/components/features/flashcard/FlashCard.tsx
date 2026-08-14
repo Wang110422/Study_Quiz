@@ -9,9 +9,9 @@ const FlashCard = ({ term, definition }: FlashCardProps) => {
     const [isFlipped, setIsFlipped] = useState(false);
 
     return (
-        <div className="w-full max-w-4xl aspect-[16/9] min-h-[350px] mx-auto relative cursor-pointer select-none" onClick={() => setIsFlipped(!isFlipped)}>
+        <div className="w-full max-w-5xl aspect-[16/9] min-h-[380px] mx-auto relative cursor-pointer select-none" onClick={() => setIsFlipped(!isFlipped)}>
             <div className={`absolute inset-0 transition-transform duration-500 preserve-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
-                <div className="absolute inset-0 bg-white rounded-2xl shadow-md border border-gray-100 flex flex-col p-6 backface-hidden">
+                <div className="absolute inset-0 bg-white rounded-2xl shadow-sm border border-slate-200/90 flex flex-col p-6 sm:p-8 backface-hidden">
                     <div className="flex justify-between items-center mb-6">
                         <div className="text-gray-400 text-sm flex items-center gap-2">
                             <span>💡</span>

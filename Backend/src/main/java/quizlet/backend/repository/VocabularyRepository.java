@@ -9,4 +9,6 @@ import java.util.List;
 @RequestMapping
 public interface VocabularyRepository extends JpaRepository<Vocabulary,Long> {
     List<Vocabulary> findByStudySetSlug(String slug);
+    List<Vocabulary> findByStudySetSlugAndIsDelFalse(String slug);
+    List<Vocabulary> findByStudySetFolderUserIdAndIsDelTrue(Long userId);
 }
