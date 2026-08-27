@@ -17,7 +17,7 @@ services:
 
   frontend:
     build:
-      context: ../../Frontend
+      context: ../Frontend
       dockerfile: Dockerfile
     container_name: frontend
     restart: always
@@ -29,15 +29,15 @@ services:
       - app_network
   backend_python:
     build:
-      context: ../../Backend_python
+      context: ../Backend_python
       dockerfile: Dockerfile
     container_name: backend_python
     restart: always
     ports:
       - "8001:8001"
     env_file:
-      - ../../Backend_python/.env
-      - ../../.env
+      - ../Backend_python/.env
+      - ../.env
     environment:
       - BANDAI_JOB_URL=${BANDAI_JOB_URL}
       - BANDAI_TOKEN=${BANDAI_TOKEN}
@@ -47,15 +47,15 @@ services:
       - app_network
   backend_java:
     build:
-      context: ../../Backend
+      context: ../Backend
       dockerfile: Dockerfile
     container_name: backend_java
     restart: always
     ports:
       - "8080:8080"
     env_file:
-      - ../../Backend/.env
-      - ../../.env
+      - ../Backend/.env
+      - ../.env
     environment:
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
