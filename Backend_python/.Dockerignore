@@ -1,0 +1,9 @@
+abc.ipynb
+__pycache__
+*.pyc
+*.pyo
+.git
+.gitignore
+.env
+.venv
+venv

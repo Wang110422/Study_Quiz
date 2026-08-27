@@ -23,7 +23,7 @@ const FolderDetailPage = () => {
         <div className="min-h-screen bg-slate-50/50 text-slate-900 font-sans flex flex-col select-none">
             <VocaSidebar />
 
-            <div className="pl-[200px] flex flex-col min-h-screen">
+            <div className="pl-[260px] flex flex-col min-h-screen">
                 <VocaHeader />
 
                 <main className="flex-1 p-6 lg:p-8 max-w-[1600px] w-full mx-auto">

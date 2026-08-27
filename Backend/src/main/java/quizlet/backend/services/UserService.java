@@ -7,6 +7,7 @@ import quizlet.backend.authe.JwtTokenProvider;
 import quizlet.backend.dto.AuthResponse;
 import quizlet.backend.dto.LoginRequest;
 import quizlet.backend.dto.RegisterRequest;
+import quizlet.backend.enums.Role;
 import quizlet.backend.model.User;
 import quizlet.backend.repository.UserRepository;
 
@@ -67,6 +68,8 @@ public class UserService {
         user.setLastName(request.getLastName());
         if (request.getRole() != null) {
             user.setRole(request.getRole());
+        } else {
+            user.setRole(Role.STUDENT);
         }
 
         User savedUser = userRepository.save(user);

@@ -53,7 +53,7 @@ public class SchoolClassService {
         SchoolClass schoolClass = schoolClassRepository.findById(classId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học"));
 
-        if (!schoolClass.getTeacher().getId().equals(teacher.getId()) && teacher.getRole() != Role.ADMIN) {
+        if (!schoolClass.getTeacher().getId().equals(teacher.getId()) ) {
             throw new RuntimeException("Chỉ giáo viên tạo lớp mới có quyền chỉnh sửa");
         }
 
@@ -69,7 +69,7 @@ public class SchoolClassService {
         SchoolClass schoolClass = schoolClassRepository.findById(classId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học"));
 
-        if (!schoolClass.getTeacher().getId().equals(teacher.getId()) && teacher.getRole() != Role.ADMIN) {
+        if (!schoolClass.getTeacher().getId().equals(teacher.getId())) {
             throw new RuntimeException("Chỉ giáo viên tạo lớp mới có quyền xóa");
         }
 

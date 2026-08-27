@@ -27,7 +27,7 @@ const UserLibrarySection = () => {
                 <h2 className="text-base font-bold text-slate-900">
                     Thư viện của bạn
                 </h2>
-                <Link to="/studyset" className="text-sm font-semibold text-blue-600 hover:text-blue-700">
+                <Link to="/folders" className="text-sm font-semibold text-blue-600 hover:text-blue-700">
                     Xem tất cả →
                 </Link>
             </div>

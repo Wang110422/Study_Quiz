@@ -34,7 +34,7 @@ const AddResourceToGroupModal = ({ isOpen, onClose, groupId, classId, onSuccess 
     const fetchSets = async () => {
         setLoadingSets(true);
         try {
-            const list = await studySetService.getAllStudySets();
+            const list = await studySetService.getUserStudySets();
             setStudySets(list);
             if (list.length > 0) setSelectedSetId(list[0].id);
         } catch (err) {

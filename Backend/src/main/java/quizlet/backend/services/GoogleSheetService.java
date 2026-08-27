@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import quizlet.backend.dto.StudySetDTO;
 import quizlet.backend.dto.VocabularyFlashCardDTO;
 import quizlet.backend.helper.SlugUtil;
+import quizlet.backend.model.User;
 import quizlet.backend.repository.StudySetRepository;
 
 import java.util.*;
@@ -416,7 +417,7 @@ public class GoogleSheetService {
     }
 
     @Transactional
-    public List<StudySetDTO> syncGoogleSheetToWeb(String sheetId, String accessToken, Long folderId) throws Exception {
+    public List<StudySetDTO> syncGoogleSheetToWeb(String sheetId, String accessToken, Long folderId, User user) throws Exception {
         // 1. Lấy dữ liệu các StudySet và từ vựng đọc được từ Sheet
         Map<String, List<VocabularyFlashCardDTO>> dataSheet = readGoogleSheet(accessToken, sheetId);
 
@@ -435,7 +436,7 @@ public class GoogleSheetService {
             studySetDTO.setFolderId(folderId);
             studySetDTO.setVocabularies(entry.getValue());
 
-            studySetService.createStudySet(studySetDTO);
+            studySetService.createStudySet(studySetDTO,user);
         }
 
         // 4. Trả về danh sách StudySets thuộc Folder sau khi đồng bộ
@@ -446,8 +447,4 @@ public class GoogleSheetService {
         }
     }
 
-    @Transactional
-    public List<StudySetDTO> syncGoogleSheetToWeb(String sheetId, String accessToken, Long userId, Long folderId) throws Exception {
-        return syncGoogleSheetToWeb(sheetId, accessToken, folderId);
-    }
 }

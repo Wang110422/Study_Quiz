@@ -1,380 +1,583 @@
 import { useState, useEffect, useRef } from 'react';
-import { FileSearch, UploadCloud, FileText, CheckCircle2, Loader2, Sparkles, Filter, Plus, Check, RefreshCw } from 'lucide-react';
-import VocaHeader from '../../components/vocalearn/layout/VocaHeader';
-import VocaSidebar from '../../components/vocalearn/layout/VocaSidebar';
-import docScannerService, { type ExtractedVocabulary, type CEFRLevel } from '../../services/docScannerService';
-import AddToSetModal from '../../components/vocalearn/modals/AddToSetModal';
+import {
+  ScanLine,
+  UploadCloud,
+  FileText,
+  Loader2,
+  Images,
+  BookOpen,
+  Copy,
+  Search,
+  Check,
+  RefreshCw,
+  Image as ImageIcon,
+  AlertTriangle,
+  Layers,
+  Sparkles,
+} from 'lucide-react';
+import VocaHeader from '@/components/vocalearn/layout/VocaHeader';
+import VocaSidebar from '@/components/vocalearn/layout/VocaSidebar';
+import { PageHeader, SectionTitle } from '@/components/app/PageHeader';
+import { Pill } from '@/components/app/ui-bits';
+import docScannerService, { docScannerCache, type ExtractedVocabulary, type CEFRLevel, type ScannedPageItem } from '@/services/docScannerService';
+import AddToSetModal from '@/components/vocalearn/modals/AddToSetModal';
 
-const CEFR_BADGES: Record<CEFRLevel, { label: string; color: string; bg: string; border: string }> = {
-    A1: { label: 'A1 - Sơ cấp', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200' },
-    A2: { label: 'A2 - Cơ bản', color: 'text-teal-700', bg: 'bg-teal-50', border: 'border-teal-200' },
-    B1: { label: 'B1 - Trung cấp', color: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-200' },
-    B2: { label: 'B2 - Trung cấp cao', color: 'text-indigo-700', bg: 'bg-indigo-50', border: 'border-indigo-200' },
-    C1: { label: 'C1 - Cao cấp', color: 'text-purple-700', bg: 'bg-purple-50', border: 'border-purple-200' },
-    C2: { label: 'C2 - Chuyên sâu', color: 'text-rose-700', bg: 'bg-rose-50', border: 'border-rose-200' },
-};
+const CEFR_LEVELS: CEFRLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
 const VocaScanDocumentPage = () => {
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [filePreviewUrl, setFilePreviewUrl] = useState<string>('');
 
-    // Trạng thái quét & Tiến trình
-    const [isScanning, setIsScanning] = useState<boolean>(false);
-    const [progressPercent, setProgressPercent] = useState<number>(0);
-    const [elapsedTime, setElapsedTime] = useState<number>(0);
-    const [currentStepText, setCurrentStepText] = useState<string>('');
+  // Trạng thái quét & Tiến trình từng trang
+  const [isScanning, setIsScanning] = useState<boolean>(false);
+  const [progressPercent, setProgressPercent] = useState<number>(0);
+  const [currentPageScanning, setCurrentPageScanning] = useState<number>(1);
+  const [totalPagesCount, setTotalPagesCount] = useState<number>(1);
+  const [elapsedTime, setElapsedTime] = useState<number>(0);
+  const [currentStepText, setCurrentStepText] = useState<string>('');
 
-    // Kết quả trích xuất
-    const [extractedVocabs, setExtractedVocabs] = useState<ExtractedVocabulary[]>([]);
-    const [activeLevelFilter, setActiveLevelFilter] = useState<'ALL' | CEFRLevel>('ALL');
+  // Danh sách trang tài liệu quét được (Hàng dọc)
+  const [scannedPages, setScannedPages] = useState<ScannedPageItem[]>([]);
 
-    // Modal lưu từ vựng vào bộ thẻ
-    const [isAddToSetOpen, setIsAddToSetOpen] = useState<boolean>(false);
+  // Bộ lọc CEFR RIÊNG CHO TỪNG TRANG (Per-page Local Filter Map)
+  const [pageLevelFilters, setPageLevelFilters] = useState<Record<number, 'ALL' | CEFRLevel>>({});
 
-    // Timer đếm thời gian
-    useEffect(() => {
-        let timer: any;
-        if (isScanning) {
-            timer = setInterval(() => {
-                setElapsedTime((prev) => prev + 1);
-            }, 1000);
-        } else {
-            setElapsedTime(0);
+  // State quản lý trạng thái đang tra cứu lại cho từng trang và trạng thái Copy chữ
+  const [reExtractingPages, setReExtractingPages] = useState<Record<number, boolean>>({});
+  const [copiedStatus, setCopiedStatus] = useState<Record<number, boolean>>({});
+
+  // Modal lưu từ vựng vào bộ thẻ
+  const [isAddToSetOpen, setIsAddToSetOpen] = useState<boolean>(false);
+
+  // 🔄 KHÔI PHỤC TRẠNG THÁI KHI MOUNT
+  useEffect(() => {
+    const cached = docScannerCache.load();
+    if (cached && cached.scannedPages && cached.scannedPages.length > 0) {
+      setScannedPages(cached.scannedPages);
+      setPageLevelFilters(cached.pageLevelFilters || {});
+      setFilePreviewUrl(cached.filePreviewUrl || '');
+      setSelectedFile(new File([], cached.fileName || 'Tài liệu đã quét'));
+    }
+  }, []);
+
+  // 💾 TỰ ĐỘNG LƯU TRẠNG THÁI MỖI KHI THAY ĐỔI
+  useEffect(() => {
+    if (scannedPages.length > 0 && !isScanning) {
+      docScannerCache.save({
+        fileName: selectedFile?.name || 'Tài liệu đã quét',
+        filePreviewUrl,
+        scannedPages,
+        pageLevelFilters,
+      });
+    }
+  }, [scannedPages, pageLevelFilters, isScanning, filePreviewUrl, selectedFile]);
+
+  // Timer đếm thời gian
+  useEffect(() => {
+    let timer: any;
+    if (isScanning) {
+      timer = setInterval(() => {
+        setElapsedTime((prev) => prev + 1);
+      }, 1000);
+    } else {
+      setElapsedTime(0);
+    }
+    return () => clearInterval(timer);
+  }, [isScanning]);
+
+  // Bắt đầu quá trình quét file từng trang theo hàng dọc
+  const handleStartScan = async (file: File) => {
+    setSelectedFile(file);
+    const previewUrl = URL.createObjectURL(file);
+    setFilePreviewUrl(previewUrl);
+
+    setIsScanning(true);
+    setProgressPercent(0);
+    setScannedPages([]);
+    setCurrentStepText('📄 Đang đọc và phân tích các trang tài liệu...');
+
+    try {
+      const pages = await docScannerService.scanDocumentPages(
+        file,
+        previewUrl,
+        (page, total, percent) => {
+          setCurrentPageScanning(page);
+          setTotalPagesCount(total);
+          setProgressPercent(percent);
+          setCurrentStepText(`🔍 Đang quét và OCR nhận diện Trang ${page}/${total}...`);
         }
-        return () => clearInterval(timer);
-    }, [isScanning]);
+      );
 
-    // Bắt đầu quá trình quét file mô phỏng tiến trình thực tế sống động
-    const handleStartScan = async (file: File) => {
-        setSelectedFile(file);
-        setIsScanning(true);
-        setProgressPercent(0);
-        setCurrentStepText('📄 Đang đọc và phân tích cấu trúc tài liệu...');
+      setScannedPages(pages);
 
-        // 1. Đọc nội dung file
-        const text = await docScannerService.readTextFromFile(file);
+      const initFilters: Record<number, 'ALL' | CEFRLevel> = {};
+      pages.forEach((p) => {
+        initFilters[p.pageNumber] = 'ALL';
+      });
+      setPageLevelFilters(initFilters);
 
-        // 2. Chạy mô phỏng thanh tiến trình sống động
-        const interval = setInterval(() => {
-            setProgressPercent((prev) => {
-                if (prev >= 90) {
-                    clearInterval(interval);
-                    return 90;
-                }
-                const next = prev + Math.floor(Math.random() * 15) + 5;
-                if (next > 30 && next <= 60) {
-                    setCurrentStepText('🔍 Đang bóc tách thuật ngữ & lọc các từ trùng lặp...');
-                } else if (next > 60) {
-                    setCurrentStepText('🏷️ Đang tra cứu định nghĩa & phân loại trình độ CEFR (A1 - C2)...');
-                }
-                return next;
-            });
-        }, 300);
+      setCurrentStepText('✅ Nhận diện OCR Khoanh vùng & Trích xuất từ vựng A1-C2 hoàn tất!');
+    } catch (err) {
+      console.error('Lỗi khi quét tài liệu:', err);
+      setCurrentStepText('❌ Có lỗi xảy ra trong quá trình quét. Vui lòng thử lại!');
+    } finally {
+      setIsScanning(false);
+    }
+  };
 
-        // 3. Hoàn tất trích xuất từ vựng
-        setTimeout(() => {
-            clearInterval(interval);
-            setProgressPercent(100);
-            setCurrentStepText('✅ Hoàn tất! Đã trích xuất danh sách từ vựng chuẩn CEFR.');
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      handleStartScan(e.target.files[0]);
+    }
+  };
 
-            const result = docScannerService.extractVocabularies(text);
-            setExtractedVocabs(result);
+  const handleChooseOtherFile = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
+  };
 
-            setTimeout(() => {
-                setIsScanning(false);
-            }, 800);
-        }, 3000);
-    };
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleStartScan(e.dataTransfer.files[0]);
+    }
+  };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            handleStartScan(e.target.files[0]);
-        }
-    };
-
-    const handleDragOver = (e: React.DragEvent) => {
-        e.preventDefault();
-    };
-
-    const handleDrop = (e: React.DragEvent) => {
-        e.preventDefault();
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            handleStartScan(e.dataTransfer.files[0]);
-        }
-    };
-
-    // Toggle chọn 1 từ vựng
-    const handleToggleSelect = (id: string) => {
-        setExtractedVocabs((prev) =>
-            prev.map((v) => (v.id === id ? { ...v, selected: !v.selected } : v))
-        );
-    };
-
-    // Chọn tất cả / Bỏ chọn tất cả theo bộ lọc hiện tại
-    const handleToggleSelectAll = (select: boolean) => {
-        setExtractedVocabs((prev) =>
-            prev.map((v) => {
-                if (activeLevelFilter === 'ALL' || v.level === activeLevelFilter) {
-                    return { ...v, selected: select };
-                }
-                return v;
-            })
-        );
-    };
-
-    // Danh sách từ vựng lọc theo cấp độ CEFR hiện tại
-    const filteredVocabs = extractedVocabs.filter(
-        (v) => activeLevelFilter === 'ALL' || v.level === activeLevelFilter
+  const handleUpdatePageText = (pageNumber: number, newText: string) => {
+    setScannedPages((prevPages) =>
+      prevPages.map((page) =>
+        page.pageNumber === pageNumber ? { ...page, rawText: newText } : page
+      )
     );
+  };
 
-    const selectedVocabs = extractedVocabs.filter((v) => v.selected);
+  const handleSetPageFilter = (pageNumber: number, level: 'ALL' | CEFRLevel) => {
+    setPageLevelFilters((prev) => ({
+      ...prev,
+      [pageNumber]: level,
+    }));
+  };
 
-    return (
-        <div className="min-h-screen bg-slate-50/50 text-slate-900 font-sans flex flex-col select-none pb-24">
-            <VocaSidebar />
+  const handleCopyPageText = (pageNumber: number, text: string) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopiedStatus((prev) => ({ ...prev, [pageNumber]: true }));
+    setTimeout(() => {
+      setCopiedStatus((prev) => ({ ...prev, [pageNumber]: false }));
+    }, 2000);
+  };
 
-            <div className="pl-[200px] flex flex-col min-h-screen">
-                <VocaHeader />
+  const handleReSearchVocab = async (pageNumber: number) => {
+    const targetPage = scannedPages.find((p) => p.pageNumber === pageNumber);
+    if (!targetPage || !targetPage.rawText?.trim()) return;
 
-                <main className="flex-1 p-6 lg:p-8 max-w-[1400px] w-full mx-auto">
-                    {/* Header Title */}
-                    <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div>
-                            <div className="flex items-center gap-2.5 mb-1">
-                                <FileSearch className="w-6 h-6 text-blue-600" />
-                                <h1 className="text-xl font-bold text-slate-900">
-                                    Quét tài liệu & Trích xuất từ vựng CEFR
-                                </h1>
-                            </div>
-                            <p className="text-xs text-slate-400 font-normal">
-                                Tải lên tài liệu PDF, DOCX, TXT để hệ thống tự động bóc tách từ vựng và phân loại cấp độ A1 - C2.
-                            </p>
-                        </div>
+    setReExtractingPages((prev) => ({ ...prev, [pageNumber]: true }));
 
-                        {extractedVocabs.length > 0 && (
-                            <button
-                                onClick={() => fileInputRef.current?.click()}
-                                className="flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-semibold rounded-xl transition-all shadow-2xs cursor-pointer"
-                            >
-                                <RefreshCw className="w-4 h-4 text-blue-600" />
-                                <span>Quét tài liệu khác</span>
-                            </button>
-                        )}
-                    </div>
+    try {
+      const newVocabList = await docScannerService.extractSinglePage(pageNumber, targetPage.rawText);
+      setScannedPages((prevPages) =>
+        prevPages.map((page) =>
+          page.pageNumber === pageNumber
+            ? { ...page, vocabularies: newVocabList }
+            : page
+        )
+      );
+    } catch (error) {
+      console.error(`Lỗi khi tra cứu lại cho trang ${pageNumber}:`, error);
+    } finally {
+      setReExtractingPages((prev) => ({ ...prev, [pageNumber]: false }));
+    }
+  };
 
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".txt,.pdf,.docx,.doc"
-                        onChange={handleFileChange}
-                        className="hidden"
-                    />
+  const handleToggleVocabulary = (pageNumber: number, vocabId: string) => {
+    setScannedPages((prevPages) =>
+      prevPages.map((page) => {
+        if (page.pageNumber === pageNumber) {
+          return {
+            ...page,
+            vocabularies: (page.vocabularies || []).map((v) =>
+              v.id === vocabId ? { ...v, selected: !v.selected } : v
+            ),
+          };
+        }
+        return page;
+      })
+    );
+  };
 
-                    {/* KHU VỰC 1: UPLOAD FILE & THANH TIẾN TRÌNH QUÉT */}
-                    {extractedVocabs.length === 0 && !isScanning ? (
-                        <div
-                            onDragOver={handleDragOver}
-                            onDrop={handleDrop}
-                            onClick={() => fileInputRef.current?.click()}
-                            className="bg-white border-2 border-dashed border-blue-200 hover:border-blue-500 rounded-3xl p-10 lg:p-14 text-center shadow-xs transition-all cursor-pointer group flex flex-col items-center justify-center gap-4 my-8"
-                        >
-                            <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
-                                <UploadCloud className="w-8 h-8" />
-                            </div>
-                            <div>
-                                <h3 className="text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors mb-1">
-                                    Kéo thả tài liệu vào đây hoặc <span className="text-blue-600 underline">Bấm để chọn file</span>
-                                </h3>
-                                <p className="text-xs text-slate-400 font-medium max-w-md mx-auto">
-                                    Hỗ trợ tài liệu văn bản dạng PDF, DOCX, TXT... Hệ thống tự động phân tích và xếp loại từ vựng từ A1 đến C2.
-                                </p>
-                            </div>
-                            <div className="flex items-center gap-3 mt-2 text-[11px] font-bold text-slate-400">
-                                <span className="px-2.5 py-1 bg-slate-100 rounded-lg">PDF</span>
-                                <span className="px-2.5 py-1 bg-slate-100 rounded-lg">DOCX</span>
-                                <span className="px-2.5 py-1 bg-slate-100 rounded-lg">TXT</span>
-                            </div>
-                        </div>
-                    ) : isScanning ? (
-                        /* THANH TIẾN TRÌNH PHẦN TRĂM (%) KHI ĐANG QUẾT */
-                        <div className="bg-white border border-slate-200 rounded-3xl p-8 lg:p-10 shadow-xs mb-8 space-y-6">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-                                        <FileText className="w-5 h-5 animate-pulse" />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold text-slate-900 text-sm">{selectedFile?.name || 'Đang quét file...'}</h3>
-                                        <p className="text-xs text-slate-400">
-                                            Dung lượng: {selectedFile ? (selectedFile.size / 1024).toFixed(1) + ' KB' : '...'} · Thời gian chạy: {elapsedTime} giây
-                                        </p>
-                                    </div>
-                                </div>
-                                <span className="text-2xl font-black text-blue-600">{progressPercent}%</span>
-                            </div>
+  const handleToggleSelectPageVocabs = (pageNumber: number, targetLevel?: 'ALL' | CEFRLevel) => {
+    setScannedPages((prevPages) =>
+      prevPages.map((page) => {
+        if (page.pageNumber !== pageNumber) return page;
+        const currentFilter = targetLevel || pageLevelFilters[pageNumber] || 'ALL';
+        const pageVocabs = page.vocabularies || [];
+        const targetVocabs = pageVocabs.filter(
+          (v) => currentFilter === 'ALL' || v.level === currentFilter
+        );
+        const allTargetSelected = targetVocabs.length > 0 && targetVocabs.every((v) => v.selected);
 
-                            {/* Main Progress Bar */}
-                            <div className="w-full bg-slate-100 h-3.5 rounded-full overflow-hidden p-0.5 border border-slate-200/60">
-                                <div
-                                    className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-300 shadow-sm"
-                                    style={{ width: `${progressPercent}%` }}
-                                />
-                            </div>
+        return {
+          ...page,
+          vocabularies: pageVocabs.map((v) => {
+            if (currentFilter === 'ALL' || v.level === currentFilter) {
+              return { ...v, selected: !allTargetSelected };
+            }
+            return v;
+          }),
+        };
+      })
+    );
+  };
 
-                            <div className="flex items-center justify-between text-xs font-semibold text-slate-500">
-                                <span className="flex items-center gap-2 text-blue-600 font-bold">
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                    <span>{currentStepText}</span>
-                                </span>
-                                <span>Vui lòng không đóng trình duyệt</span>
-                            </div>
-                        </div>
-                    ) : null}
+  const allVocabs: ExtractedVocabulary[] = scannedPages.flatMap((page) => page.vocabularies || []);
+  const allSelectedVocabs: ExtractedVocabulary[] = allVocabs.filter((v) => v.selected);
 
-                    {/* KHU VỰC 2: KẾT QUẢ VÀ HÀNG CHỜ TỪ VỰNG THEO CEFR (A1 - C2) */}
-                    {extractedVocabs.length > 0 && !isScanning && (
-                        <div>
-                            {/* CEFR Level Filter Bar */}
-                            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span className="text-xs font-bold text-slate-500 flex items-center gap-1 mr-2">
-                                        <Filter className="w-3.5 h-3.5" />
-                                        Lọc CEFR:
-                                    </span>
+  return (
+    <div className="min-h-screen bg-background text-foreground font-sans flex flex-col select-none pb-28">
+      {/* Fixed Left Sidebar */}
+      <VocaSidebar />
 
-                                    <button
-                                        onClick={() => setActiveLevelFilter('ALL')}
-                                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                                            activeLevelFilter === 'ALL'
-                                                ? 'bg-slate-900 text-white shadow-xs'
-                                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                        }`}
-                                    >
-                                        Tất cả ({extractedVocabs.length})
-                                    </button>
+      {/* Main Container Offset */}
+      <div className="pl-[260px] flex flex-col min-h-screen">
+        {/* Top Header */}
+        <VocaHeader />
 
-                                    {(['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] as CEFRLevel[]).map((level) => {
-                                        const count = extractedVocabs.filter((v) => v.level === level).length;
-                                        const badge = CEFR_BADGES[level];
-                                        const isActive = activeLevelFilter === level;
-
-                                        return (
-                                            <button
-                                                key={level}
-                                                onClick={() => setActiveLevelFilter(level)}
-                                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
-                                                    isActive
-                                                        ? `${badge.bg} ${badge.color} ${badge.border} ring-2 ring-blue-500/20 shadow-2xs`
-                                                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                                                }`}
-                                            >
-                                                {level} ({count})
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-
-                                <div className="flex items-center gap-2 text-xs font-semibold">
-                                    <button
-                                        type="button"
-                                        onClick={() => handleToggleSelectAll(true)}
-                                        className="px-3 py-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                                    >
-                                        Chọn tất cả
-                                    </button>
-                                    <span className="text-slate-300">|</span>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleToggleSelectAll(false)}
-                                        className="px-3 py-1.5 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                                    >
-                                        Bỏ chọn
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* VOCABULARY STAGING QUEUE GRID */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
-                                {filteredVocabs.map((item) => {
-                                    const badge = CEFR_BADGES[item.level];
-
-                                    return (
-                                        <div
-                                            key={item.id}
-                                            onClick={() => handleToggleSelect(item.id)}
-                                            className={`bg-white border rounded-2xl p-4 shadow-2xs transition-all cursor-pointer flex flex-col justify-between relative group ${
-                                                item.selected
-                                                    ? 'border-blue-500 ring-2 ring-blue-500/10 shadow-xs'
-                                                    : 'border-slate-200 opacity-75 hover:opacity-100'
-                                            }`}
-                                        >
-                                            <div>
-                                                <div className="flex items-start justify-between mb-2">
-                                                    <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold border ${badge.bg} ${badge.color} ${badge.border}`}>
-                                                        {badge.label}
-                                                    </span>
-
-                                                    {/* Custom Checkbox */}
-                                                    <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${
-                                                        item.selected
-                                                            ? 'bg-blue-600 border-blue-600 text-white'
-                                                            : 'border-slate-300 bg-white'
-                                                    }`}>
-                                                        {item.selected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                                                    </div>
-                                                </div>
-
-                                                <h3 className="text-base font-bold text-slate-900 mb-1 group-hover:text-blue-600 transition-colors">
-                                                    {item.term} <span className="text-xs font-semibold text-slate-400 italic">({item.partOfSpeech})</span>
-                                                </h3>
-                                                <p className="text-xs font-semibold text-slate-700 bg-slate-50 p-2.5 rounded-xl border border-slate-100 mb-2">
-                                                    {item.definition}
-                                                </p>
-                                                {item.example && (
-                                                    <p className="text-[11px] text-slate-400 italic font-normal">
-                                                        "{item.example}"
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-
-                            {/* FLOATING ACTION BOTTOM BAR */}
-                            <div className="fixed bottom-6 left-[230px] right-6 max-w-[1400px] mx-auto bg-slate-900/90 backdrop-blur-md text-white p-4 rounded-2xl shadow-2xl flex items-center justify-between gap-4 z-30 border border-slate-800 animate-in slide-in-from-bottom-5">
-                                <div className="flex items-center gap-3">
-                                    <Sparkles className="w-5 h-5 text-amber-400" />
-                                    <span className="text-xs font-semibold">
-                                        Đã chọn <strong className="text-white font-bold text-sm">{selectedVocabs.length}</strong> / {extractedVocabs.length} từ vựng trong hàng chờ
-                                    </span>
-                                </div>
-
-                                <button
-                                    disabled={selectedVocabs.length === 0}
-                                    onClick={() => setIsAddToSetOpen(true)}
-                                    className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-blue-500/30 cursor-pointer active:scale-95"
-                                >
-                                    <Plus className="w-4 h-4" />
-                                    <span>Thêm ({selectedVocabs.length}) từ vựng vào bộ thẻ của tôi</span>
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                </main>
+        <main className="flex-1 p-6 lg:p-8 max-w-[1400px] w-full mx-auto space-y-6 animate-fadeIn">
+          {/* 1. Header nằm trong hình chữ nhật bo góc tròn màu trắng */}
+          <div className="surface-card p-6 rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-2xs">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                <ScanLine className="w-6 h-6" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-slate-900">Quét tài liệu</h1>
+                <p className="text-xs text-slate-400 font-normal mt-0.5">
+                  Nhận diện chữ từ ảnh tài liệu và tự động tạo bộ thẻ từ vựng.
+                </p>
+              </div>
             </div>
 
-            {/* Modal Chọn Bộ thẻ để thêm từ vựng */}
-            <AddToSetModal
-                isOpen={isAddToSetOpen}
-                onClose={() => setIsAddToSetOpen(false)}
-                selectedVocabs={selectedVocabs}
-                onSuccess={() => {
-                    setExtractedVocabs([]);
-                }}
-            />
-        </div>
-    );
+            {selectedFile && !isScanning && (
+              <button
+                type="button"
+                onClick={handleChooseOtherFile}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-slate-200 bg-white hover:bg-slate-50 px-5 text-sm font-semibold text-slate-700 transition cursor-pointer shadow-2xs active:scale-95 shrink-0"
+              >
+                <RefreshCw className="h-4 w-4 text-blue-600" />
+                <span>Chọn tài liệu khác</span>
+              </button>
+            )}
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,.pdf"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+
+          {/* 2. Khung Tải File Drag & Drop (Nếu chưa chọn file) */}
+          {!selectedFile && (
+            <div
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className="surface-card border-2 border-dashed border-border hover:border-primary p-12 text-center transition-all cursor-pointer group"
+            >
+              <div className="w-16 h-16 rounded-2xl bg-primary-soft text-primary flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                <UploadCloud className="w-8 h-8" />
+              </div>
+              <h3 className="text-base font-bold text-foreground mb-1">
+                Kéo & thả tài liệu vào đây, hoặc <span className="text-primary underline">Chọn từ máy tính</span>
+              </h3>
+              <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                Hỗ trợ file ảnh (JPG, PNG, WebP) và tài liệu PDF nhiều trang. Dung lượng tối đa 25MB.
+              </p>
+            </div>
+          )}
+
+          {/* 3. Tiến Trình Quét Từng Trang */}
+          {isScanning && (
+            <section className="surface-card p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                  <span className="text-sm font-bold text-foreground">
+                    Đang quét Trang {currentPageScanning} / {totalPagesCount}...
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 text-xs font-mono font-bold text-primary">
+                  <span>Thời gian: {elapsedTime}s</span>
+                  <span className="px-2.5 py-1 bg-primary-soft rounded-lg">
+                    {progressPercent}%
+                  </span>
+                </div>
+              </div>
+
+              <div className="w-full bg-muted h-2.5 rounded-full overflow-hidden">
+                <div
+                  className="bg-primary h-full rounded-full transition-all duration-300 shadow-sm"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground font-medium text-center">{currentStepText}</p>
+            </section>
+          )}
+
+          {/* 4. Danh Sách Các Trang Đã Quét */}
+          {scannedPages.length > 0 && (
+            <div className="space-y-8">
+              <SectionTitle
+                icon={FileText}
+                title="Danh sách trang tài liệu đã quét"
+                badge={`${scannedPages.length} trang`}
+              />
+
+              {scannedPages.map((page) => {
+                const pageVocabs = page.vocabularies || [];
+                const currentFilter = pageLevelFilters[page.pageNumber] || 'ALL';
+                const filteredPageVocabs = pageVocabs.filter(
+                  (v) => currentFilter === 'ALL' || v.level === currentFilter
+                );
+                const isAllFilteredSelected = filteredPageVocabs.length > 0 && filteredPageVocabs.every((v) => v.selected);
+
+                return (
+                  <div key={page.pageNumber} className="space-y-6">
+                    {/* Section 1: So sánh ảnh gốc vs OCR */}
+                    <section className="surface-card p-6">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <Pill tone="muted">P{page.pageNumber}</Pill>
+                        <h3 className="font-bold text-foreground">{page.pageTitle}</h3>
+                        <Pill className="ml-auto">{pageVocabs.length} từ vựng trích xuất</Pill>
+                      </div>
+
+                      <h4 className="mt-6 flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                        <Images className="h-4 w-4 text-primary" /> So sánh Ảnh Gốc vs Ảnh Sau Khi Nhận Diện OCR
+                      </h4>
+
+                      <div className="mt-3 grid gap-4 md:grid-cols-2">
+                        <div>
+                          <p className="mb-2 text-xs font-semibold text-muted-foreground">Ảnh Trang Gốc</p>
+                          <div className="flex h-56 lg:h-96 items-center justify-center rounded-2xl border border-border bg-muted/50 text-muted-foreground overflow-hidden">
+                            {page.pageImageUrl ? (
+                              <img
+                                src={page.pageImageUrl}
+                                alt={`Ảnh gốc Trang ${page.pageNumber}`}
+                                className="w-full h-full object-contain"
+                              />
+                            ) : (
+                              <ImageIcon className="h-8 w-8" />
+                            )}
+                          </div>
+                        </div>
+
+                        <div>
+                          <p className="mb-2 text-xs font-semibold text-primary">Ảnh Kết Quả OCR</p>
+                          <div className="relative flex h-56 lg:h-96 items-center justify-center overflow-hidden rounded-2xl border-2 border-primary bg-muted/40">
+                            {page.ocrImageUrl ? (
+                              <img
+                                src={page.ocrImageUrl}
+                                alt={`Ảnh OCR Trang ${page.pageNumber}`}
+                                className="w-full h-full object-contain"
+                              />
+                            ) : (
+                              <div className="flex flex-col items-center justify-center text-center p-6 space-y-2">
+                                <AlertTriangle className="w-6 h-6 text-amber-500" />
+                                <span className="text-xs font-bold text-foreground">Không thể tải ảnh OCR khoanh vùng</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </section>
+
+                    {/* Section 2: Chữ đã được nhận diện */}
+                    <section className="surface-card p-6">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <h3 className="flex items-center gap-2 font-bold text-foreground">
+                          <FileText className="h-[18px] w-[18px] text-primary" /> Chữ đã được nhận diện
+                        </h3>
+                        <span className="text-xs text-muted-foreground">(có thể chỉnh sửa trước khi tra cứu)</span>
+                        <div className="ml-auto flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleCopyPageText(page.pageNumber, page.rawText)}
+                            className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full border border-border bg-card px-4 text-xs font-semibold text-foreground transition hover:bg-muted cursor-pointer"
+                          >
+                            {copiedStatus[page.pageNumber] ? (
+                              <>
+                                <Check className="h-4 w-4 text-success" /> Đã chép!
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="h-4 w-4" /> Copy chữ
+                              </>
+                            )}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleReSearchVocab(page.pageNumber)}
+                            disabled={reExtractingPages[page.pageNumber]}
+                            className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground shadow-pop transition hover:opacity-90 cursor-pointer disabled:opacity-50"
+                          >
+                            {reExtractingPages[page.pageNumber] ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin" /> Đang tra cứu...
+                              </>
+                            ) : (
+                              <>
+                                <Search className="h-4 w-4" /> Tra cứu lại
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      <textarea
+                        value={page.rawText || ''}
+                        onChange={(e) => handleUpdatePageText(page.pageNumber, e.target.value)}
+                        className="mt-4 h-40 w-full resize-y rounded-2xl border border-input bg-muted/40 p-4 text-sm leading-relaxed outline-none focus:border-ring font-mono text-foreground select-text"
+                        placeholder="Nội dung văn bản nhận diện được..."
+                      />
+                    </section>
+
+                    {/* Section 3: Bộ từ vựng trích xuất */}
+                    <div className="space-y-4">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <h3 className="flex items-center gap-2 font-bold text-foreground">
+                          <BookOpen className="h-[18px] w-[18px] text-primary" /> Bộ từ vựng trích xuất bên dưới Trang {page.pageNumber} ({filteredPageVocabs.length} từ)
+                        </h3>
+
+                        <div className="ml-auto flex flex-wrap items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleSetPageFilter(page.pageNumber, 'ALL')}
+                            className={`h-9 rounded-full px-3 text-xs font-semibold transition cursor-pointer ${
+                              currentFilter === 'ALL'
+                                ? "bg-primary text-primary-foreground"
+                                : "border border-border bg-card text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            Tất cả
+                          </button>
+
+                          {CEFR_LEVELS.map((lvl) => (
+                            <button
+                              key={lvl}
+                              type="button"
+                              onClick={() => handleSetPageFilter(page.pageNumber, lvl)}
+                              className={`h-9 rounded-full px-3 text-xs font-semibold transition cursor-pointer ${
+                                currentFilter === lvl
+                                  ? "bg-primary text-primary-foreground"
+                                  : "border border-border bg-card text-muted-foreground hover:text-foreground"
+                              }`}
+                            >
+                              {lvl}
+                            </button>
+                          ))}
+
+                          <button
+                            type="button"
+                            onClick={() => handleToggleSelectPageVocabs(page.pageNumber, currentFilter)}
+                            className="h-9 rounded-full px-3 text-xs font-semibold text-destructive hover:bg-destructive/10 cursor-pointer transition"
+                          >
+                            {isAllFilteredSelected ? "Bỏ chọn hết" : "Chọn tất cả"}
+                          </button>
+                        </div>
+                      </div>
+
+                      {filteredPageVocabs.length === 0 ? (
+                        <div className="surface-card p-8 text-center text-xs text-muted-foreground">
+                          Không có từ vựng nào thuộc cấp độ {currentFilter} ở Trang {page.pageNumber}.
+                        </div>
+                      ) : (
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                          {filteredPageVocabs.map((v) => (
+                            <article
+                              key={v.id}
+                              onClick={() => handleToggleVocabulary(page.pageNumber, v.id)}
+                              className={`surface-card p-4 transition-all cursor-pointer ${
+                                v.selected ? "border-primary ring-1 ring-primary/25 bg-card" : "opacity-75 hover:opacity-100"
+                              }`}
+                            >
+                              <div className="flex items-start gap-3">
+                                <input
+                                  type="checkbox"
+                                  checked={v.selected}
+                                  onChange={() => {}}
+                                  aria-label={`Chọn ${v.term}`}
+                                  className="mt-1 h-4 w-4 accent-[var(--primary)] cursor-pointer"
+                                />
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-start gap-2">
+                                    <p className="font-display font-bold text-foreground text-base">{v.term}</p>
+                                    <Pill className="ml-auto" tone="info">
+                                      {v.level}
+                                    </Pill>
+                                  </div>
+                                  {v.ipa ? <p className="mt-0.5 text-xs text-muted-foreground font-mono">{v.ipa}</p> : null}
+                                  <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-foreground">
+                                    {v.partOfSpeech && (
+                                      <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">
+                                        {v.partOfSpeech}
+                                      </span>
+                                    )}
+                                    {v.definition}
+                                  </p>
+                                  {v.example ? (
+                                    <p className="mt-2 text-xs italic text-muted-foreground">{v.example}</p>
+                                  ) : null}
+                                </div>
+                              </div>
+                            </article>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* 5. FLOATING BAR: LƯU TỪ VỰNG ĐÃ CHỌN VÀO BỘ THẺ */}
+          {allSelectedVocabs.length > 0 && (
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 surface-card border-2 border-primary/30 shadow-pop px-6 py-4 rounded-full flex items-center gap-4 bg-card/95 backdrop-blur-md">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-primary" />
+                <span className="text-sm font-bold text-foreground">
+                  Đã chọn {allSelectedVocabs.length} từ vựng
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddToSetOpen(true)}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-primary px-5 text-xs font-bold text-primary-foreground shadow-pop transition hover:opacity-90 cursor-pointer"
+              >
+                <Layers className="w-4 h-4" /> Lưu vào Bộ thẻ mới / Thư mục
+              </button>
+            </div>
+          )}
+        </main>
+      </div>
+
+      {/* Modal Lưu vào bộ thẻ */}
+      <AddToSetModal
+        isOpen={isAddToSetOpen}
+        onClose={() => setIsAddToSetOpen(false)}
+        selectedVocabs={allSelectedVocabs}
+        selectedVocabularies={allSelectedVocabs}
+        onSuccess={() => {
+          setIsAddToSetOpen(false);
+        }}
+      />
+    </div>
+  );
 };
 
 export default VocaScanDocumentPage;

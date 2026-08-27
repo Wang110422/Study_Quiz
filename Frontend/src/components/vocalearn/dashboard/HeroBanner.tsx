@@ -1,80 +1,59 @@
-import { Flame, Brain, Hourglass } from 'lucide-react';
+import { Sparkles, ArrowRight, PenLine, Mic, MessageCircle } from "lucide-react";
+import { Link } from "react-router-dom";
+
+const aiFeatures = [
+    { icon: PenLine, title: "Writing AI", desc: "Chấm bài viết, sửa lỗi và gợi ý bài mẫu." },
+    { icon: Mic, title: "Speaking AI", desc: "Nhận xét transcript, điểm mạnh và cách nói tốt hơn." },
+    { icon: MessageCircle, title: "Lingo", desc: "Hỏi nhanh ngữ pháp, từ vựng và cách làm bài." },
+];
 
 interface HeroBannerProps {
     userName?: string;
-    streakDays?: number;
-    totalVocab?: number;
-    todayCards?: number;
 }
 
-const HeroBanner = ({
-    userName = 'Lan Anh',
-    streakDays = 5,
-    totalVocab = 120,
-    todayCards = 15,
-}: HeroBannerProps) => {
-    const days = ['CHỦ NHẬT', 'THỨ HAI', 'THỨ BA', 'THỨ TƯ', 'THỨ NĂM', 'THỨ SÁU', 'THỨ BẢY'];
-    const now = new Date();
-    const dayName = days[now.getDay()];
-    const dateStr = `${dayName}, ${now.getDate()} THÁNG ${now.getMonth() + 1} · ${now.getFullYear()}`;
-
+export const HeroBanner = (_props: HeroBannerProps = {}) => {
     return (
-        <div className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-5 text-white relative overflow-hidden shadow-md shadow-blue-500/15 select-none">
-            {/* Background Decorative Circles */}
-            <div className="absolute right-[-10%] top-[-20%] w-72 h-72 rounded-full bg-white/10 blur-2xl pointer-events-none" />
-            <div className="absolute right-[20%] bottom-[-30%] w-56 h-56 rounded-full bg-indigo-400/20 blur-xl pointer-events-none" />
-
-            <div className="relative z-10">
-                {/* Date Header */}
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-blue-200 mb-1.5">
-                    {dateStr}
-                </p>
-
-                {/* Greeting Title */}
-                <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-                    Chào mừng trở lại, {userName}! 👋
+        <section className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] select-none">
+            <div className="surface-card flex flex-col justify-center p-6 sm:p-9">
+                <span className="inline-flex w-fit items-center gap-2 rounded-full bg-primary-soft px-4 py-2 text-xs font-bold text-primary">
+                    <Sparkles className="h-4 w-4" /> LingoMaster Aptis ESOL
+                </span>
+                <h1 className="mt-5 text-3xl font-bold leading-tight sm:text-4xl text-foreground">
+                    Luyện Aptis theo bộ đề, học mẹo nhanh và nhận nhận xét AI sau khi làm bài
                 </h1>
-                <p className="text-xs text-blue-100 mt-1 mb-4 font-normal">
-                    Hôm nay bạn muốn chinh phục môn học nào?
+                <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground">
+                    Web hỗ trợ Reading, Listening, Speaking, Writing và Grammar với giao diện luyện thi rõ
+                    ràng. Phần Writing và Speaking có chấm AI để ước tính điểm, CEFR, chỉ ra lỗi chính và gợi
+                    ý cách cải thiện bài làm.
                 </p>
-
-                {/* 3 Stat Cards */}
-                <div className="grid grid-cols-3 gap-3 max-w-lg">
-                    {/* Stat 1: Streak */}
-                    <div className="bg-white/15 backdrop-blur-md rounded-xl p-3 border border-white/20 flex flex-col justify-between">
-                        <div className="flex items-center gap-1.5 text-amber-300">
-                            <Flame className="w-4 h-4 fill-amber-400" />
-                        </div>
-                        <div className="mt-2">
-                            <span className="text-lg font-bold text-white">{streakDays} ngày</span>
-                            <p className="text-[11px] text-blue-100 font-normal mt-0.5">liên tiếp</p>
-                        </div>
-                    </div>
-
-                    {/* Stat 2: Total Vocab */}
-                    <div className="bg-white/15 backdrop-blur-md rounded-xl p-3 border border-white/20 flex flex-col justify-between">
-                        <div className="flex items-center gap-1.5 text-pink-300">
-                            <Brain className="w-4 h-4" />
-                        </div>
-                        <div className="mt-2">
-                            <span className="text-lg font-bold text-white">{totalVocab}</span>
-                            <p className="text-[11px] text-blue-100 font-normal mt-0.5">từ vựng</p>
-                        </div>
-                    </div>
-
-                    {/* Stat 3: Today Cards */}
-                    <div className="bg-white/15 backdrop-blur-md rounded-xl p-3 border border-white/20 flex flex-col justify-between">
-                        <div className="flex items-center gap-1.5 text-emerald-300">
-                            <Hourglass className="w-4 h-4" />
-                        </div>
-                        <div className="mt-2">
-                            <span className="text-lg font-bold text-white">{todayCards}</span>
-                            <p className="text-[11px] text-blue-100 font-normal mt-0.5">thẻ hôm nay</p>
-                        </div>
-                    </div>
+                <div className="mt-7 flex flex-wrap gap-3">
+                    <Link
+                        to="/exams"
+                        className="inline-flex h-12 items-center gap-2 rounded-2xl bg-primary px-6 text-sm font-bold text-primary-foreground shadow-pop transition hover:opacity-90 cursor-pointer"
+                    >
+                        Vào bộ đề <ArrowRight className="h-4 w-4" />
+                    </Link>
+                    <Link
+                        to="/mock-test"
+                        className="inline-flex h-12 items-center rounded-2xl border border-border bg-card px-6 text-sm font-bold transition hover:bg-muted cursor-pointer text-foreground"
+                    >
+                        Thi thử AI
+                    </Link>
                 </div>
             </div>
-        </div>
+
+            <div className="space-y-4 flex flex-col justify-between">
+                {aiFeatures.map((f) => (
+                    <article key={f.title} className="surface-card p-5">
+                        <span className="icon-tile">
+                            <f.icon className="h-5 w-5" />
+                        </span>
+                        <h3 className="mt-3 font-bold text-foreground">{f.title}</h3>
+                        <p className="mt-1 text-sm text-muted-foreground">{f.desc}</p>
+                    </article>
+                ))}
+            </div>
+        </section>
     );
 };
 

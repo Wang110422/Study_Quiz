@@ -139,7 +139,7 @@ public class GoogleController {
         }
 
         try {
-            List<StudySetDTO> studySetDTOS = googleSheetService.syncGoogleSheetToWeb(sheetId, accessToken, folderId);
+            List<StudySetDTO> studySetDTOS = googleSheetService.syncGoogleSheetToWeb(sheetId, accessToken, folderId,u);
             response.setStatus(HttpStatus.OK.value());
             response.setMessage("Đồng bộ từ Google Sheet về Web thành công");
             response.setResult(studySetDTOS);

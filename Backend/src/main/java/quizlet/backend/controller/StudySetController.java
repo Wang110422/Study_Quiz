@@ -34,6 +34,21 @@ public class StudySetController {
         return getAllStudySets();
     }
 
+    @GetMapping("/user")
+    public ResponseEntity<APIResponse<List<StudySetDTO>>> getStudySetsByUser(@AuthenticationPrincipal User user) {
+        APIResponse<List<StudySetDTO>> response = new APIResponse<>();
+        if (user == null) {
+            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+            response.setMessage("Chưa đăng nhập");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        }
+        List<StudySetDTO> studySets = studySetService.getAllByUserId(user.getId());
+        response.setStatus(HttpStatus.OK.value());
+        response.setMessage("Success");
+        response.setResult(studySets);
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/folder/{folderId}")
     public ResponseEntity<APIResponse<List<StudySetDTO>>> getStudySetsByFolderId(@PathVariable Long folderId) {
         List<StudySetDTO> studySets = studySetService.getAllByFolderId(folderId);
@@ -65,7 +80,7 @@ public class StudySetController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
         }
 
-        StudySetDTO created = studySetService.createStudySet(studySetDTO);
+        StudySetDTO created = studySetService.createStudySet(studySetDTO, user);
 
         APIResponse<StudySetDTO> response = new APIResponse<>();
         response.setStatus(HttpStatus.CREATED.value());

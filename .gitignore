@@ -1,0 +1,30 @@
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.ipynb
+*credentials*.json
+client_secret*.json
+
+# Dependencies & Build artifacts
+node_modules/
+dist/
+build/
+target/
+__pycache__/
+*.pyc
+.venv/
+venv/
+ENV/
+
+# Logs & IDE
+*.log
+.idea/
+.vscode/
+*.iws
+*.iml
+*.ipr
+.DS_Store
+Thumbs.db

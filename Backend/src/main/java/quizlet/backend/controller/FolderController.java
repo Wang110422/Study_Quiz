@@ -27,7 +27,7 @@ public class FolderController {
             response.setMessage("Chưa đăng nhập");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
         }
-
+        System.out.println(user.getId());
         List<FolderDTO> folders = folderService.getAllByUserId(user.getId());
 
         APIResponse<List<FolderDTO>> response = new APIResponse<>();

@@ -59,17 +59,10 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
         }
 
-        // Cập nhật thông tin cơ bản
+        // Cập nhật thông tin cơ bản (Email là định danh tài khoản cố định, không được chỉnh sửa)
         if (requestDTO.getFirstName() != null) existingUser.setFirstName(requestDTO.getFirstName());
         if (requestDTO.getLastName() != null) existingUser.setLastName(requestDTO.getLastName());
-        if (requestDTO.getEmail() != null && !requestDTO.getEmail().isBlank()) {
-            existingUser.setEmail(requestDTO.getEmail());
-        }
 
-        // Cập nhật Vai trò (Role Enum)
-        if (requestDTO.getRole() != null) {
-            existingUser.setRole(requestDTO.getRole());
-        }
 
         // Cập nhật Cài đặt giao diện & ngôn ngữ (Enum)
         if (requestDTO.getAvatarUrl() != null) existingUser.setAvatarUrl(requestDTO.getAvatarUrl());

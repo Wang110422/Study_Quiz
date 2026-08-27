@@ -1,53 +1,43 @@
 import { useState, useEffect } from 'react';
-import { User, Settings, Shield, GraduationCap, School, Moon, Sun, Monitor, Globe, Bell, Clock, Check, Loader2, Save } from 'lucide-react';
+import { User, Settings, Shield, GraduationCap, School, Moon, Sun, Monitor, Globe, Bell, Clock, Check, Loader2, Save, Lock } from 'lucide-react';
 import VocaHeader from '../../components/vocalearn/layout/VocaHeader';
 import VocaSidebar from '../../components/vocalearn/layout/VocaSidebar';
-import AuthService, { type UserProfile } from '../../services/authService';
+import AuthService from '../../services/authService';
+import { useAuthStore } from '../../store';
 
 const VocaProfilePage = () => {
+    const { user, updateUserStore } = useAuthStore();
     const [activeTab, setActiveTab] = useState<'profile' | 'settings'>('profile');
-    const [loading, setLoading] = useState<boolean>(true);
+    const [loading, setLoading] = useState<boolean>(false);
     const [isSaving, setIsSaving] = useState<boolean>(false);
     const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
     // Form fields
-    const [firstName, setFirstName] = useState('');
-    const [lastName, setLastName] = useState('');
-    const [email, setEmail] = useState('');
-    const [role, setRole] = useState<'STUDENT' | 'TEACHER' | 'ADMIN' | string>('STUDENT');
-    const [bio, setBio] = useState('');
+    const [firstName, setFirstName] = useState(user?.firstName || '');
+    const [lastName, setLastName] = useState(user?.lastName || '');
+    const [email, setEmail] = useState(user?.email || '');
+    const [role, setRole] = useState<'STUDENT' | 'TEACHER' | 'ADMIN' | string>(user?.role || 'STUDENT');
+    const [bio, setBio] = useState(user?.bio || '');
 
     // Settings fields
-    const [themePreference, setThemePreference] = useState<string>('light');
-    const [languagePreference, setLanguagePreference] = useState<string>('vi');
-    const [reminderEnabled, setReminderEnabled] = useState<boolean>(true);
-    const [reminderTime, setReminderTime] = useState<string>('20:00');
+    const [themePreference, setThemePreference] = useState<string>(user?.themePreference || 'light');
+    const [languagePreference, setLanguagePreference] = useState<string>(user?.languagePreference || 'vi');
+    const [reminderEnabled, setReminderEnabled] = useState<boolean>(user?.reminderEnabled !== undefined ? user.reminderEnabled : true);
+    const [reminderTime, setReminderTime] = useState<string>(user?.reminderTime || '20:00');
 
     useEffect(() => {
-        loadUserProfile();
-    }, []);
-
-    const loadUserProfile = async () => {
-        setLoading(true);
-        try {
-            const user = await AuthService.getCurrentUser();
-            if (user) {
-                setFirstName(user.firstName || '');
-                setLastName(user.lastName || '');
-                setEmail(user.email || '');
-                setRole(user.role || 'STUDENT');
-                setBio(user.bio || '');
-                setThemePreference(user.themePreference || 'light');
-                setLanguagePreference(user.languagePreference || 'vi');
-                setReminderEnabled(user.reminderEnabled !== undefined ? user.reminderEnabled : true);
-                setReminderTime(user.reminderTime || '20:00');
-            }
-        } catch (err) {
-            console.error('Lỗi khi tải thông tin cá nhân:', err);
-        } finally {
-            setLoading(false);
+        if (user) {
+            setFirstName(user.firstName || '');
+            setLastName(user.lastName || '');
+            setEmail(user.email || '');
+            setRole(user.role || 'STUDENT');
+            setBio(user.bio || '');
+            setThemePreference(user.themePreference || 'light');
+            setLanguagePreference(user.languagePreference || 'vi');
+            setReminderEnabled(user.reminderEnabled !== undefined ? user.reminderEnabled : true);
+            setReminderTime(user.reminderTime || '20:00');
         }
-    };
+    }, [user]);
 
     const handleSaveProfile = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -69,9 +59,8 @@ const VocaProfilePage = () => {
             });
 
             if (updated) {
+                updateUserStore(updated);
                 setSaveMessage('Đã lưu thông tin hồ sơ và cài đặt thành công!');
-                // Phát sự kiện toàn cục để Sidebar & Header tự động cập nhật lại ngay tức thì
-                window.dispatchEvent(new CustomEvent('user-profile-updated', { detail: updated }));
                 setTimeout(() => setSaveMessage(null), 3500);
             }
         } catch (err) {
@@ -89,7 +78,7 @@ const VocaProfilePage = () => {
         <div className="min-h-screen bg-slate-50/50 text-slate-900 font-sans flex flex-col select-none pb-20">
             <VocaSidebar />
 
-            <div className="pl-[200px] flex flex-col min-h-screen">
+            <div className="pl-[260px] flex flex-col min-h-screen">
                 <VocaHeader />
 
                 <main className="flex-1 p-6 lg:p-8 max-w-[1200px] w-full mx-auto">
@@ -200,15 +189,21 @@ const VocaProfilePage = () => {
                                     </div>
 
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                                            Địa chỉ Email đăng nhập
-                                        </label>
+                                        <div className="flex items-center justify-between mb-1.5">
+                                            <label className="block text-xs font-bold text-slate-700">
+                                                Địa chỉ Email đăng nhập
+                                            </label>
+                                            <span className="text-[11px] font-semibold text-slate-400 flex items-center gap-1">
+                                                <Lock className="w-3 h-3 text-slate-400" />
+                                                <span>Định danh tài khoản cố định</span>
+                                            </span>
+                                        </div>
                                         <input
                                             type="email"
                                             value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            placeholder="example@gmail.com"
-                                            className="w-full bg-slate-50 border border-slate-200 focus:border-blue-500 focus:bg-white rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none transition-all"
+                                            disabled
+                                            readOnly
+                                            className="w-full bg-slate-100/80 border border-slate-200 text-slate-500 font-semibold rounded-xl px-4 py-3 text-sm outline-none cursor-not-allowed select-all"
                                         />
                                     </div>
 

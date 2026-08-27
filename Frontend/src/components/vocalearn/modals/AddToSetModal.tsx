@@ -8,11 +8,13 @@ import type { ExtractedVocabulary } from '../../../services/docScannerService';
 interface AddToSetModalProps {
     isOpen: boolean;
     onClose: () => void;
-    selectedVocabs: ExtractedVocabulary[];
+    selectedVocabs?: ExtractedVocabulary[];
+    selectedVocabularies?: ExtractedVocabulary[];
     onSuccess?: () => void;
 }
 
-const AddToSetModal = ({ isOpen, onClose, selectedVocabs, onSuccess }: AddToSetModalProps) => {
+const AddToSetModal = ({ isOpen, onClose, selectedVocabs, selectedVocabularies, onSuccess }: AddToSetModalProps) => {
+    const safeVocabs = selectedVocabularies || selectedVocabs || [];
     const { folders, loading: loadingFolders } = useFolders();
     const [mode, setMode] = useState<'existing' | 'new'>('existing');
 
@@ -38,7 +40,7 @@ const AddToSetModal = ({ isOpen, onClose, selectedVocabs, onSuccess }: AddToSetM
     const fetchSets = async () => {
         setLoadingSets(true);
         try {
-            const allSets = await studySetService.getAllStudySets();
+            const allSets = await studySetService.getUserStudySets();
             setStudySets(allSets);
             if (allSets.length > 0) {
                 setSelectedSetId(allSets[0].id);
@@ -61,16 +63,44 @@ const AddToSetModal = ({ isOpen, onClose, selectedVocabs, onSuccess }: AddToSetM
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (selectedVocabs.length === 0 || isSubmitting) return;
+        const safeVocabs = selectedVocabs || [];
+        if (safeVocabs.length === 0 || isSubmitting) return;
 
         setIsSubmitting(true);
         setMessage(null);
 
         try {
-            const formattedVocabs = selectedVocabs.map((v) => ({
+            const formatPos = (posRaw?: string): string => {
+                if (!posRaw) return 'NOUN';
+                const p = posRaw.toUpperCase().trim();
+                if (p.startsWith('N')) return 'NOUN';
+                if (p.startsWith('V')) return 'VERB';
+                if (p.includes('ADJ')) return 'ADJECTIVE';
+                if (p.includes('ADV')) return 'ADVERB';
+                if (p.includes('PREP')) return 'PREPOSITION';
+                if (p.includes('CONJ')) return 'CONJUNCTION';
+                if (p.includes('PRON')) return 'PRONOUN';
+                if (p.includes('PHR')) return 'PHRASE';
+                if (p.includes('IDM') || p.includes('IDIOM')) return 'IDIOM';
+                return 'OTHER';
+            };
+
+            const formattedVocabs = safeVocabs.map((v) => ({
                 term: v.term,
                 definition: v.definition,
+                baseForm: (v as any).base_form || (v as any).baseForm || v.term,
+                base_form: (v as any).base_form || (v as any).baseForm || v.term,
+                ipa: v.ipa || '',
+                audioUrl: (v as any).audio_url || (v as any).audioUrl || '',
+                audio_url: (v as any).audio_url || (v as any).audioUrl || '',
+                pos: formatPos(v.partOfSpeech || (v as any).pos),
+                partOfSpeech: v.partOfSpeech || (v as any).pos || 'noun',
+                level: v.level || 'B1',
+                meaning: v.definition,
+                hint: v.example || '',
                 example: v.example || '',
+                createAt: new Date().toISOString(),
+                create_at: new Date().toISOString(),
             }));
 
             if (mode === 'existing' && selectedSetId) {
@@ -96,7 +126,7 @@ const AddToSetModal = ({ isOpen, onClose, selectedVocabs, onSuccess }: AddToSetM
                 });
             }
 
-            setMessage(`Đã thêm thành công ${selectedVocabs.length} từ vựng!`);
+            setMessage(`Đã thêm thành công ${safeVocabs.length} từ vựng!`);
             setTimeout(() => {
                 setMessage(null);
                 onClose();
@@ -111,7 +141,7 @@ const AddToSetModal = ({ isOpen, onClose, selectedVocabs, onSuccess }: AddToSetM
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={`Thêm ${selectedVocabs.length} từ vựng vào Bộ thẻ`}>
+        <Modal isOpen={isOpen} onClose={onClose} title={`Thêm ${safeVocabs.length} từ vựng vào Bộ thẻ`}>
             <form onSubmit={handleSubmit} className="space-y-4">
                 {message && (
                     <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold rounded-xl flex items-center gap-2">
@@ -125,22 +155,20 @@ const AddToSetModal = ({ isOpen, onClose, selectedVocabs, onSuccess }: AddToSetM
                     <button
                         type="button"
                         onClick={() => setMode('existing')}
-                        className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                            mode === 'existing'
+                        className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${mode === 'existing'
                                 ? 'bg-white text-slate-900 shadow-xs'
                                 : 'text-slate-500 hover:text-slate-900'
-                        }`}
+                            }`}
                     >
                         Bộ từ vựng có sẵn
                     </button>
                     <button
                         type="button"
                         onClick={() => setMode('new')}
-                        className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                            mode === 'new'
+                        className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${mode === 'new'
                                 ? 'bg-white text-slate-900 shadow-xs'
                                 : 'text-slate-500 hover:text-slate-900'
-                        }`}
+                            }`}
                     >
                         + Tạo Bộ từ vựng mới
                     </button>
@@ -241,7 +269,7 @@ const AddToSetModal = ({ isOpen, onClose, selectedVocabs, onSuccess }: AddToSetM
                     </button>
                     <button
                         type="submit"
-                        disabled={isSubmitting || selectedVocabs.length === 0 || (mode === 'new' && !newTitle.trim())}
+                        disabled={isSubmitting || safeVocabs.length === 0 || (mode === 'new' && !newTitle.trim())}
                         className="flex items-center gap-1.5 px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-semibold rounded-xl transition-all shadow-sm shadow-blue-500/20 cursor-pointer active:scale-95"
                     >
                         {isSubmitting ? (
@@ -249,7 +277,7 @@ const AddToSetModal = ({ isOpen, onClose, selectedVocabs, onSuccess }: AddToSetM
                         ) : (
                             <Check className="w-4 h-4" />
                         )}
-                        <span>Xác nhận thêm ({selectedVocabs.length})</span>
+                        <span>Xác nhận thêm ({safeVocabs.length})</span>
                     </button>
                 </div>
             </form>

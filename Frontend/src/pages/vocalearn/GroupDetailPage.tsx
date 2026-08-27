@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Users, FolderKanban, BookOpen, Plus, Copy, Check, ArrowLeft, Link2, Shield, School, GraduationCap, Sparkles, Loader2 } from 'lucide-react';
 import VocaHeader from '../../components/vocalearn/layout/VocaHeader';
 import VocaSidebar from '../../components/vocalearn/layout/VocaSidebar';
-import classGroupService, { type ClassOrGroup } from '../../services/classGroupService';
 import AddResourceToGroupModal from '../../components/vocalearn/modals/AddResourceToGroupModal';
-import AuthService, { type UserProfile } from '../../services/authService';
+import { useClassOrGroupDetail } from '../../hooks/useClassOrGroupDetail';
 
 const MAX_MEMBERS = 20; // Giới hạn tối đa 20 thành viên theo yêu cầu
 
@@ -14,35 +13,15 @@ const GroupDetailPage = () => {
     const targetId = Number(classId || groupId);
     const isClassRoute = Boolean(classId);
 
-    const [activeTab, setActiveTab] = useState<'resources' | 'members'>('resources');
-    const [groupData, setGroupData] = useState<ClassOrGroup | null>(null);
-    const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
-    const [loading, setLoading] = useState<boolean>(true);
+    const {
+        groupData,
+        loading,
+        fetchDetail,
+    } = useClassOrGroupDetail(targetId, isClassRoute);
 
+    const [activeTab, setActiveTab] = useState<'resources' | 'members'>('resources');
     const [isAddResourceOpen, setIsAddResourceOpen] = useState<boolean>(false);
     const [copied, setCopied] = useState<boolean>(false);
-
-    useEffect(() => {
-        AuthService.getCurrentUser().then((u) => setCurrentUser(u));
-        fetchDetail();
-    }, [targetId]);
-
-    const fetchDetail = async () => {
-        setLoading(true);
-        try {
-            if (isClassRoute) {
-                const detail = await classGroupService.getClassById(targetId);
-                setGroupData(detail || null);
-            } else {
-                const detail = await classGroupService.getGroupById(targetId);
-                setGroupData(detail || null);
-            }
-        } catch (err) {
-            console.error('Lỗi khi tải chi tiết nhóm:', err);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const joinCode = groupData?.joinCode || 'GRP-8X92A';
     const inviteLink = `${window.location.origin}/classes?joinCode=${joinCode}`;
@@ -67,7 +46,7 @@ const GroupDetailPage = () => {
         <div className="min-h-screen bg-slate-50/50 text-slate-900 font-sans flex flex-col select-none pb-20">
             <VocaSidebar />
 
-            <div className="pl-[200px] flex flex-col min-h-screen">
+            <div className="pl-[260px] flex flex-col min-h-screen">
                 <VocaHeader />
 
                 <main className="flex-1 p-6 lg:p-8 max-w-[1400px] w-full mx-auto">
@@ -105,11 +84,10 @@ const GroupDetailPage = () => {
                             <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200/60 shrink-0">
                                 <button
                                     onClick={() => setActiveTab('resources')}
-                                    className={`px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
-                                        activeTab === 'resources'
-                                            ? 'bg-white text-blue-600 shadow-xs'
-                                            : 'text-slate-600 hover:text-slate-900'
-                                    }`}
+                                    className={`px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${activeTab === 'resources'
+                                        ? 'bg-white text-blue-600 shadow-xs'
+                                        : 'text-slate-600 hover:text-slate-900'
+                                        }`}
                                 >
                                     <FolderKanban className="w-4 h-4" />
                                     <span>Tài liệu học ({groupData?.foldersCount || 0})</span>
@@ -117,11 +95,10 @@ const GroupDetailPage = () => {
 
                                 <button
                                     onClick={() => setActiveTab('members')}
-                                    className={`px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
-                                        activeTab === 'members'
-                                            ? 'bg-white text-blue-600 shadow-xs'
-                                            : 'text-slate-600 hover:text-slate-900'
-                                    }`}
+                                    className={`px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${activeTab === 'members'
+                                        ? 'bg-white text-blue-600 shadow-xs'
+                                        : 'text-slate-600 hover:text-slate-900'
+                                        }`}
                                 >
                                     <Users className="w-4 h-4" />
                                     <span>Thành viên ({memberCount}/{MAX_MEMBERS})</span>
@@ -254,9 +231,8 @@ const GroupDetailPage = () => {
                                                     </div>
                                                     <div className="w-full bg-black/20 h-2 rounded-full overflow-hidden p-0.5">
                                                         <div
-                                                            className={`h-full rounded-full transition-all duration-300 ${
-                                                                isFull ? 'bg-rose-400' : 'bg-amber-400'
-                                                            }`}
+                                                            className={`h-full rounded-full transition-all duration-300 ${isFull ? 'bg-rose-400' : 'bg-amber-400'
+                                                                }`}
                                                             style={{ width: `${progressPercent}%` }}
                                                         />
                                                     </div>
@@ -316,23 +292,21 @@ const GroupDetailPage = () => {
                                                 </div>
                                             ) : (
                                                 realMembers.map((m) => {
-                                                    const isOwner = m.id === groupData?.creatorId || m.id === groupData?.teacherId;
+                                                    const isOwner = m.id === groupData?.id;
                                                     const fullName = `${m.firstName || ''} ${m.lastName || ''}`.trim() || m.email;
                                                     return (
                                                         <div key={m.id} className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center gap-3.5 shadow-2xs hover:border-blue-300 transition-all">
-                                                            <div className={`w-11 h-11 rounded-xl font-bold text-base flex items-center justify-center shrink-0 ${
-                                                                isOwner ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-700'
-                                                            }`}>
+                                                            <div className={`w-11 h-11 rounded-xl font-bold text-base flex items-center justify-center shrink-0 ${isOwner ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-700'
+                                                                }`}>
                                                                 {fullName.charAt(0).toUpperCase()}
                                                             </div>
                                                             <div className="flex-1 min-w-0">
                                                                 <h4 className="font-bold text-slate-900 text-sm truncate">{fullName}</h4>
                                                                 <p className="text-xs text-slate-400 truncate">{m.email}</p>
-                                                                <span className={`inline-block mt-1 px-2 py-0.5 text-[10px] font-semibold rounded-md ${
-                                                                    isOwner
-                                                                        ? 'bg-purple-50 text-purple-700 border border-purple-200 font-bold'
-                                                                        : 'bg-slate-100 text-slate-600'
-                                                                }`}>
+                                                                <span className={`inline-block mt-1 px-2 py-0.5 text-[10px] font-semibold rounded-md ${isOwner
+                                                                    ? 'bg-purple-50 text-purple-700 border border-purple-200 font-bold'
+                                                                    : 'bg-slate-100 text-slate-600'
+                                                                    }`}>
                                                                     {isOwner ? '👑 Trưởng nhóm' : 'Thành viên'}
                                                                 </span>
                                                             </div>

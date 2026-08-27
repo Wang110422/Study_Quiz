@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Layers, Check, FolderKanban, Lock } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Layers, Check, FolderKanban, Lock, Image as ImageIcon, ChevronUp, ChevronDown } from 'lucide-react';
 import VocaHeader from '../../components/vocalearn/layout/VocaHeader';
 import VocaSidebar from '../../components/vocalearn/layout/VocaSidebar';
 import useFolders from '../../hooks/useFolders';
@@ -10,7 +10,10 @@ interface TermItem {
     id: number;
     term: string;
     definition: string;
-    example: string;
+    ipa?: string;
+    pos?: string;
+    example?: string;
+    synonyms?: string;
 }
 
 const CreateStudySetPage = () => {
@@ -28,9 +31,9 @@ const CreateStudySetPage = () => {
     const isFixedFolder = Boolean(presetFolderSlug);
 
     const [terms, setTerms] = useState<TermItem[]>([
-        { id: 1, term: '', definition: '', example: '' },
-        { id: 2, term: '', definition: '', example: '' },
-        { id: 3, term: '', definition: '', example: '' },
+        { id: 1, term: '', definition: '', ipa: '', pos: '', example: '', synonyms: '' },
+        { id: 2, term: '', definition: '', ipa: '', pos: '', example: '', synonyms: '' },
+        { id: 3, term: '', definition: '', ipa: '', pos: '', example: '', synonyms: '' },
     ]);
 
     useEffect(() => {
@@ -42,13 +45,25 @@ const CreateStudySetPage = () => {
     const handleAddTerm = () => {
         setTerms((prev) => [
             ...prev,
-            { id: Date.now(), term: '', definition: '', example: '' },
+            { id: Date.now(), term: '', definition: '', ipa: '', pos: '', example: '', synonyms: '' },
         ]);
     };
 
     const handleRemoveTerm = (id: number) => {
         if (terms.length <= 1) return;
         setTerms((prev) => prev.filter((t) => t.id !== id));
+    };
+
+    const handleMoveTerm = (index: number, direction: 'up' | 'down') => {
+        const targetIndex = direction === 'up' ? index - 1 : index + 1;
+        if (targetIndex < 0 || targetIndex >= terms.length) return;
+        setTerms((prev) => {
+            const next = [...prev];
+            const temp = next[index];
+            next[index] = next[targetIndex];
+            next[targetIndex] = temp;
+            return next;
+        });
     };
 
     const handleTermChange = (id: number, field: keyof TermItem, value: string) => {
@@ -69,7 +84,12 @@ const CreateStudySetPage = () => {
                 .map((t) => ({
                     term: t.term.trim(),
                     definition: t.definition.trim(),
-                    example: t.example.trim(),
+                    ipa: t.ipa?.trim() || undefined,
+                    pos: t.pos?.trim() || undefined,
+                    partOfSpeech: t.pos?.trim() || undefined,
+                    example: t.example?.trim() || undefined,
+                    hint: t.example?.trim() || undefined,
+                    meaning: t.definition.trim(),
                 }));
 
             const createdSet = await studySetService.createStudySet({
@@ -77,6 +97,7 @@ const CreateStudySetPage = () => {
                 description: description.trim(),
                 folderId: selectedFolder?.id,
                 folderSlug: selectedFolderSlug || undefined,
+                folderName: selectedFolder?.name,
                 vocabularies: validVocabularies,
             });
 
@@ -99,7 +120,7 @@ const CreateStudySetPage = () => {
         <div className="min-h-screen bg-slate-50/50 text-slate-900 font-sans flex flex-col select-none">
             <VocaSidebar />
 
-            <div className="pl-[200px] flex flex-col min-h-screen">
+            <div className="pl-[260px] flex flex-col min-h-screen">
                 <VocaHeader />
 
                 <main className="flex-1 p-6 lg:p-8 max-w-[1200px] w-full mx-auto">
@@ -212,58 +233,141 @@ const CreateStudySetPage = () => {
                             {terms.map((item, index) => (
                                 <div
                                     key={item.id}
-                                    className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs transition-all relative group"
+                                    className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs transition-all space-y-4 relative group"
                                 >
-                                    <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 text-xs font-bold text-slate-400">
-                                        <span>#{index + 1}</span>
-                                        {terms.length > 1 && (
+                                    {/* DÒNG TIÊU ĐỀ THẺ: #Số thứ tự + Nút ảnh + Nút xóa + Nút lên/xuống */}
+                                    <div className="flex items-center justify-between pb-2 border-b border-slate-100 text-xs font-bold text-slate-500">
+                                        <span className="text-sm font-black text-slate-900">{index + 1}</span>
+                                        <div className="flex items-center gap-1.5">
                                             <button
                                                 type="button"
-                                                onClick={() => handleRemoveTerm(item.id)}
-                                                className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer transition-colors"
-                                                title="Xóa thẻ"
+                                                className="flex items-center gap-1 px-2.5 py-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg text-xs font-semibold transition-all cursor-pointer"
+                                                title="Thêm hình ảnh"
                                             >
-                                                <Trash2 className="w-4 h-4" />
+                                                <ImageIcon className="w-4 h-4" />
+                                                <span className="text-[11px]">Ảnh</span>
                                             </button>
-                                        )}
+
+                                            {terms.length > 1 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemoveTerm(item.id)}
+                                                    className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 cursor-pointer transition-colors"
+                                                    title="Xóa thẻ"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            )}
+
+                                            {/* Mũi tên lên / xuống để đổi vị trí */}
+                                            <div className="flex flex-col ml-1">
+                                                <button
+                                                    type="button"
+                                                    disabled={index === 0}
+                                                    onClick={() => handleMoveTerm(index, 'up')}
+                                                    className="text-slate-400 hover:text-slate-700 disabled:opacity-20 p-0.5 cursor-pointer"
+                                                    title="Di chuyển lên"
+                                                >
+                                                    <ChevronUp className="w-3.5 h-3.5" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled={index === terms.length - 1}
+                                                    onClick={() => handleMoveTerm(index, 'down')}
+                                                    className="text-slate-400 hover:text-slate-700 disabled:opacity-20 p-0.5 cursor-pointer"
+                                                    title="Di chuyển xuống"
+                                                >
+                                                    <ChevronDown className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
 
+                                    {/* DÒNG 1: THUẬT NGỮ & ĐỊNH NGHĨA */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                                            <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1.5">
                                                 THUẬT NGỮ
                                             </label>
                                             <input
                                                 type="text"
                                                 value={item.term}
                                                 onChange={(e) => handleTermChange(item.id, 'term', e.target.value)}
-                                                placeholder="Nhập thuật ngữ..."
-                                                className="w-full bg-slate-50 border border-slate-200 focus:border-blue-500 focus:bg-white rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 placeholder-slate-400 outline-none transition-all"
+                                                placeholder="Nhập thuật ngữ"
+                                                className="w-full bg-slate-50 border border-slate-200 focus:border-blue-500 focus:bg-white rounded-xl px-4 py-3 text-xs font-semibold text-slate-800 placeholder-slate-400 outline-none transition-all"
                                             />
                                         </div>
 
                                         <div>
-                                            <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                                            <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1.5">
                                                 ĐỊNH NGHĨA
                                             </label>
                                             <input
                                                 type="text"
                                                 value={item.definition}
                                                 onChange={(e) => handleTermChange(item.id, 'definition', e.target.value)}
-                                                placeholder="Nhập định nghĩa..."
-                                                className="w-full bg-slate-50 border border-slate-200 focus:border-blue-500 focus:bg-white rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 placeholder-slate-400 outline-none transition-all"
+                                                placeholder="Nhập định nghĩa"
+                                                className="w-full bg-slate-50 border border-slate-200 focus:border-blue-500 focus:bg-white rounded-xl px-4 py-3 text-xs font-semibold text-slate-800 placeholder-slate-400 outline-none transition-all"
                                             />
                                         </div>
                                     </div>
 
-                                    <div className="mt-3">
-                                        <input
-                                            type="text"
-                                            value={item.example}
-                                            onChange={(e) => handleTermChange(item.id, 'example', e.target.value)}
-                                            placeholder="Thêm câu ví dụ minh họa (không bắt buộc)..."
-                                            className="w-full bg-transparent border-b border-dashed border-slate-200 focus:border-blue-500 py-1 text-xs text-slate-600 placeholder-slate-400 outline-none transition-all"
-                                        />
+                                    {/* DÒNG 2: PHÁT ÂM (TÙY CHỌN) & LOẠI TỪ (TÙY CHỌN) */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-[11px] font-semibold text-slate-500 mb-1.5">
+                                                Phát âm <span className="text-slate-400">(Tùy chọn)</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={item.ipa || ''}
+                                                onChange={(e) => handleTermChange(item.id, 'ipa', e.target.value)}
+                                                placeholder="VD: /həˈloʊ/"
+                                                className="w-full bg-slate-50 border border-slate-200 focus:border-blue-500 focus:bg-white rounded-xl px-4 py-2.5 text-xs font-medium text-slate-700 placeholder-slate-400 outline-none transition-all font-mono"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-[11px] font-semibold text-slate-500 mb-1.5">
+                                                Loại từ <span className="text-slate-400">(Tùy chọn)</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={item.pos || ''}
+                                                onChange={(e) => handleTermChange(item.id, 'pos', e.target.value)}
+                                                placeholder="VD: noun, verb..."
+                                                className="w-full bg-slate-50 border border-slate-200 focus:border-blue-500 focus:bg-white rounded-xl px-4 py-2.5 text-xs font-medium text-slate-700 placeholder-slate-400 outline-none transition-all"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* DÒNG 3: VÍ DỤ (TÙY CHỌN) & TỪ ĐỒNG NGHĨA (TÙY CHỌN) */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-[11px] font-semibold text-slate-500 mb-1.5">
+                                                Ví dụ <span className="text-slate-400">(Tùy chọn)</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={item.example || ''}
+                                                onChange={(e) => handleTermChange(item.id, 'example', e.target.value)}
+                                                placeholder="Nhập câu ví dụ"
+                                                className="w-full bg-slate-50 border border-slate-200 focus:border-blue-500 focus:bg-white rounded-xl px-4 py-2.5 text-xs font-medium text-slate-700 placeholder-slate-400 outline-none transition-all italic"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-[11px] font-semibold text-slate-500 mb-1.5">
+                                                Từ đồng nghĩa <span className="text-slate-400">(Tùy chọn)</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={item.synonyms || ''}
+                                                onChange={(e) => handleTermChange(item.id, 'synonyms', e.target.value)}
+                                                placeholder="Nhập các từ đồng nghĩa, cách nhau bằng dấu chấm phẩy (;)"
+                                                className="w-full bg-slate-50 border border-slate-200 focus:border-blue-500 focus:bg-white rounded-xl px-4 py-2.5 text-xs font-medium text-slate-700 placeholder-slate-400 outline-none transition-all"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             ))}

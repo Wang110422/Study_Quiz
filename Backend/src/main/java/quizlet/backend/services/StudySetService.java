@@ -3,9 +3,11 @@ package quizlet.backend.services;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import quizlet.backend.dto.StudySetDTO;
+import quizlet.backend.dto.VocabularyFlashCardDTO;
 import quizlet.backend.helper.SlugUtil;
 import quizlet.backend.model.Folder;
 import quizlet.backend.model.StudySet;
+import quizlet.backend.model.User;
 import quizlet.backend.model.Vocabulary;
 import quizlet.backend.repository.FolderRepository;
 import quizlet.backend.repository.StudySetRepository;
@@ -26,6 +28,13 @@ public class StudySetService {
         return studySetRepository.findAll()
                 .stream()
                 .filter(s -> s.getIsDel() == null || !s.getIsDel())
+                .map(this::convertStudySetDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<StudySetDTO> getAllByUserId(Long userId) {
+        return studySetRepository.findAllByUserIdIncludingIndependent(userId)
+                .stream()
                 .map(this::convertStudySetDTO)
                 .collect(Collectors.toList());
     }
@@ -61,7 +70,7 @@ public class StudySetService {
                 .collect(Collectors.toList());
     }
 
-    public StudySetDTO createStudySet(StudySetDTO studySetDTO) {
+    public StudySetDTO createStudySet(StudySetDTO studySetDTO, User user) {
         StudySet studySet = convertStudySet(studySetDTO);
 
         Folder folder = null;
@@ -78,6 +87,7 @@ public class StudySetService {
 
         studySet.setSlug(slug);
         studySet.setFolder(folder);
+        studySet.setUser(user != null ? user : (folder != null ? folder.getUser() : null));
         studySet.setIsDel(false);
 
         if (studySetDTO.getVocabularies() != null && !studySetDTO.getVocabularies().isEmpty()) {
@@ -85,6 +95,14 @@ public class StudySetService {
                 Vocabulary v = new Vocabulary();
                 v.setTerm(vDto.getTerm());
                 v.setDefinition(vDto.getDefinition());
+                v.setBaseForm(vDto.getBaseForm());
+                v.setIpa(vDto.getIpa());
+                v.setAudioUrl(vDto.getAudioUrl());
+                v.setPos(vDto.getPos());
+                v.setLevel(vDto.getLevel());
+                v.setMeaning(vDto.getMeaning() != null ? vDto.getMeaning() : vDto.getDefinition());
+                v.setHint(vDto.getHint());
+                v.setCreateAt(vDto.getCreateAt() != null ? vDto.getCreateAt() : java.time.LocalDateTime.now());
                 v.setIsDel(false);
                 v.setStudySet(studySet);
                 return v;
@@ -130,9 +148,45 @@ public class StudySetService {
         dto.setDescription(studySet.getDescription());
         dto.setSlug(studySet.getSlug());
         dto.setIsDel(studySet.getIsDel());
+        dto.setCreatedAt(studySet.getCreatedAt());
+
+        if (studySet.getUser() != null) {
+            dto.setUserId(studySet.getUser().getId());
+            String fullName = (studySet.getUser().getFirstName() != null ? studySet.getUser().getFirstName() : "") + " " +
+                    (studySet.getUser().getLastName() != null ? studySet.getUser().getLastName() : "");
+            dto.setAuthorName(fullName.trim().isEmpty() ? studySet.getUser().getEmail() : fullName.trim());
+        } else {
+            dto.setAuthorName("Hệ thống");
+        }
+
         if (studySet.getFolder() != null) {
             dto.setFolderId(studySet.getFolder().getId());
             dto.setFolderSlug(studySet.getFolder().getSlug());
+            dto.setFolderName(studySet.getFolder().getName());
+        }
+
+        if (studySet.getVocabularies() != null) {
+            dto.setVocabulariesCount(studySet.getVocabularies().size());
+            dto.setVocabularies(studySet.getVocabularies().stream().map(v -> {
+                VocabularyFlashCardDTO vDto = new VocabularyFlashCardDTO();
+                vDto.setId(v.getId());
+                vDto.setTerm(v.getTerm());
+                vDto.setDefinition(v.getDefinition());
+                vDto.setBaseForm(v.getBaseForm());
+                vDto.setIpa(v.getIpa());
+                vDto.setAudioUrl(v.getAudioUrl());
+                vDto.setPos(v.getPos());
+                vDto.setLevel(v.getLevel());
+                vDto.setMeaning(v.getMeaning());
+                vDto.setHint(v.getHint());
+                vDto.setCreateAt(v.getCreateAt());
+                vDto.setIsDel(v.getIsDel());
+                vDto.setStudySetId(studySet.getId());
+                return vDto;
+            }).collect(Collectors.toList()));
+        } else {
+            dto.setVocabulariesCount(0);
+            dto.setVocabularies(new ArrayList<>());
         }
         return dto;
     }

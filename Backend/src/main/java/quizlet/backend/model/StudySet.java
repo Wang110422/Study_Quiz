@@ -43,4 +43,11 @@ public class StudySet {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private Folder folder;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private User user;
 }

@@ -28,32 +28,35 @@ public class VocabularyService {
     @Autowired
     private FolderRepository folderRepository;
 
+    public VocabularyFlashCardDTO convertToDTO(Vocabulary x) {
+        VocabularyFlashCardDTO c = new VocabularyFlashCardDTO();
+        c.setId(x.getId());
+        c.setTerm(x.getTerm());
+        c.setDefinition(x.getDefinition());
+        c.setBaseForm(x.getBaseForm());
+        c.setIpa(x.getIpa());
+        c.setAudioUrl(x.getAudioUrl());
+        c.setPos(x.getPos());
+        c.setLevel(x.getLevel());
+        c.setMeaning(x.getMeaning());
+        c.setHint(x.getHint());
+        c.setCreateAt(x.getCreateAt());
+        c.setIsDel(x.getIsDel());
+        return c;
+    }
+
     public List<VocabularyFlashCardDTO> getVocabulary(String slug) {
         return vocabularyRepository.findByStudySetSlug(slug)
                 .stream()
                 .filter(x -> x.getIsDel() == null || !x.getIsDel())
-                .map(x -> {
-                    VocabularyFlashCardDTO c = new VocabularyFlashCardDTO();
-                    c.setId(x.getId());
-                    c.setTerm(x.getTerm());
-                    c.setDefinition(x.getDefinition());
-                    c.setIsDel(x.getIsDel());
-                    return c;
-                })
+                .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
     public List<VocabularyFlashCardDTO> getDeletedByUserId(Long userId) {
         return vocabularyRepository.findByStudySetFolderUserIdAndIsDelTrue(userId)
                 .stream()
-                .map(x -> {
-                    VocabularyFlashCardDTO c = new VocabularyFlashCardDTO();
-                    c.setId(x.getId());
-                    c.setTerm(x.getTerm());
-                    c.setDefinition(x.getDefinition());
-                    c.setIsDel(x.getIsDel());
-                    return c;
-                })
+                .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 

@@ -64,9 +64,4 @@ public class User {
     @Column
     private String reminderTime = "20:00";
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonIgnore
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
-    private List<Folder> folders;
 }
