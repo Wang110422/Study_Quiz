@@ -20,11 +20,16 @@ public class PassageGroup {
     @Column(nullable = false)
     private String title;
 
+    // Nếu bài đọc với nghe
     @Lob
     @Column(columnDefinition = "LONGTEXT")
     private String passageText;
 
-    private String mediaUrl;
+    // Nếu bài đọc với nghe
+    private String imageUrl;
+
+    // Nếu là bài nghe
+    private String audioUrl;
 
     private Integer orderIndex;
 

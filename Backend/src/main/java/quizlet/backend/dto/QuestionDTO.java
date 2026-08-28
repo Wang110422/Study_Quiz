@@ -11,6 +11,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class QuestionDTO {
     private Long id;
+    private Long passageGroupId;
+    private Integer sectionId;
     private String content;
     private String answer; // JSON options
     private String correctAnswer;

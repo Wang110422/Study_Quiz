@@ -14,9 +14,11 @@ import java.util.List;
 @AllArgsConstructor
 public class PassageGroupDTO {
     private Long id;
+    private Integer sectionId;
     private String title;
     private String passageText;
-    private String mediaUrl;
+    private String imageUrl;
+    private String audioUrl;
     private Integer orderIndex;
     private ToeicPart toeicPart;
     private List<QuestionDTO> questions;

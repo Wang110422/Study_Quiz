@@ -14,7 +14,8 @@ export interface PassageGroupDTO {
     id: number;
     title: string;
     passageText?: string;
-    mediaUrl?: string;
+    audioUrl?: string;
+    imageUrl?: string;
     orderIndex: number;
     toeicPart?: 'PART_1' | 'PART_2' | 'PART_3' | 'PART_4' | 'PART_5' | 'PART_6' | 'PART_7' | string;
     questions?: QuestionDTO[];

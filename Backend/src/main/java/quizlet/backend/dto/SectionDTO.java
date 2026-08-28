@@ -14,6 +14,7 @@ import java.util.List;
 @AllArgsConstructor
 public class SectionDTO {
     private Integer id;
+    private Long examId;
     private SkillType skill;
     private String title;
     private Integer orderIndex;
