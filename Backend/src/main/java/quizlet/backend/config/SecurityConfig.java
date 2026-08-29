@@ -12,13 +12,14 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import quizlet.backend.authe.CustomOAuth2UserService;
-import quizlet.backend.authe.JwtAuthenticationFilter;
-import quizlet.backend.authe.OAuth2AuthenticationSuccessHandler;
+import quizlet.backend.security.oauth2.CustomOAuth2UserService;
+import quizlet.backend.security.jwt.JwtAuthenticationFilter;
+import quizlet.backend.security.oauth2.OAuth2AuthenticationSuccessHandler;
 
 import java.util.List;
 
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import quizlet.backend.security.oauth2.HttpCookieOAuth2AuthorizationRequestRepository;
 
 @Configuration
 @EnableWebSecurity
@@ -28,12 +29,12 @@ public class SecurityConfig {
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final quizlet.backend.authe.HttpCookieOAuth2AuthorizationRequestRepository cookieAuthorizationRequestRepository;
+    private final HttpCookieOAuth2AuthorizationRequestRepository cookieAuthorizationRequestRepository;
 
     public SecurityConfig(CustomOAuth2UserService customOAuth2UserService,
                           OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler,
                           JwtAuthenticationFilter jwtAuthenticationFilter,
-                          quizlet.backend.authe.HttpCookieOAuth2AuthorizationRequestRepository cookieAuthorizationRequestRepository) {
+                          HttpCookieOAuth2AuthorizationRequestRepository cookieAuthorizationRequestRepository) {
         this.customOAuth2UserService = customOAuth2UserService;
         this.oAuth2AuthenticationSuccessHandler = oAuth2AuthenticationSuccessHandler;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;

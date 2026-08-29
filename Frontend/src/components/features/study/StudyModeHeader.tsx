@@ -27,7 +27,6 @@ export const StudyModeHeader = ({ currentMode, basePath, rightContent }: StudyMo
         { id: 'flashcards', label: 'Thẻ ghi nhớ', icon: Layers, color: 'text-blue-600', path: `${basePath}/flashcards` },
         { id: 'learn', label: 'Học', icon: Brain, color: 'text-purple-600', path: `${basePath}/learn` },
         { id: 'test', label: 'Kiểm tra', icon: FileText, color: 'text-emerald-600', path: `${basePath}/test` },
-        { id: 'grammar', label: 'Ngữ pháp', icon: PenTool, color: 'text-amber-600', path: `${basePath}/grammar` },
         { id: 'reading', label: 'Đọc hiểu', icon: BookMarked, color: 'text-rose-600', path: `${basePath}/reading` },
     ];
 

@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import quizlet.backend.base.APIResponse;
+import quizlet.backend.dto.res.APIResponse;
 import quizlet.backend.dto.QuestionDTO;
 import quizlet.backend.services.QuestionService;
 

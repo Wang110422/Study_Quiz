@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import quizlet.backend.dto.FolderDTO;
 import quizlet.backend.dto.StudySetDTO;
 import quizlet.backend.dto.VocabularyFlashCardDTO;
-import quizlet.backend.base.APIResponse;
+import quizlet.backend.dto.res.APIResponse;
 import quizlet.backend.model.User;
 import quizlet.backend.services.FolderService;
 import quizlet.backend.services.StudySetService;

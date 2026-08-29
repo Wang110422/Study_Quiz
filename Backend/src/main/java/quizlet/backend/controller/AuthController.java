@@ -6,9 +6,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-import quizlet.backend.dto.AuthResponse;
-import quizlet.backend.dto.LoginRequest;
-import quizlet.backend.dto.RegisterRequest;
+import quizlet.backend.dto.res.AuthResponse;
+import quizlet.backend.dto.req.LoginRequest;
+import quizlet.backend.dto.req.RegisterRequest;
 import quizlet.backend.model.User;
 import quizlet.backend.services.UserService;
 

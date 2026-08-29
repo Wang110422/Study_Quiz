@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     Library,
     Search,
@@ -10,6 +10,7 @@ import {
     BookOpen,
     RefreshCw,
     Loader2,
+    PenTool,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import VocaHeader from '@/components/vocalearn/layout/VocaHeader';
@@ -20,23 +21,36 @@ import CreateFolderModal from '@/components/vocalearn/modals/CreateFolderModal';
 import useFolders from '@/hooks/useFolders';
 import studySetService, { type StudySet } from '@/services/studySetService';
 import classGroupService, { type ClassOrGroup } from '@/services/classGroupService';
+import grammarService, { type GrammarSetDTO } from '@/services/grammarService';
 import { useAuthStore } from '@/store';
+
+const defaultMockGrammarSets: GrammarSetDTO[] = [
+    { id: 1, title: 'Ngữ pháp Tiếng Anh Du Lịch', description: 'Cấu trúc câu hỏi lịch sự, xin phép và hiện tại hoàn thành khi đi du lịch.', slug: 'tieng-anh-du-lich', emoji: '✈️', grammarCount: 3, level: 'B1 - B2' },
+    { id: 2, title: 'Ngữ pháp Tiếng Anh IT & Kỹ Thuật', description: 'Các cấu trúc câu điều kiện, câu bị động trong tài liệu kỹ thuật phần mềm.', slug: 'tieng-anh-chuyen-nganh-it', emoji: '💻', grammarCount: 2, level: 'B2 - C1' },
+    { id: 3, title: 'Ngữ pháp Tiếng Anh Trọng Tâm', description: 'Bộ bài học cấu trúc ngữ pháp then chốt giúp bạn tự tin giao tiếp và thi cử.', slug: 'co-ban', emoji: '📐', grammarCount: 3, level: 'A2 - B1' },
+];
 
 const VocaFoldersPage = () => {
     const { role } = useAuthStore();
     const { folders, loading, isSyncing, syncMessage, createFolder, deleteFolder, syncGoogleDrive } = useFolders();
-    const [tab, setTab] = useState<'folders' | 'groups' | 'sets'>('folders');
+    const [tab, setTab] = useState<'folders' | 'groups' | 'sets' | 'grammar'>('folders');
     const [searchTerm, setSearchTerm] = useState('');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-    // Dynamic data for Tab 2 & Tab 3
+    // Dynamic data for Tab 2, Tab 3 & Tab 4
     const [studySets, setStudySets] = useState<StudySet[]>([]);
     const [classesOrGroups, setClassesOrGroups] = useState<ClassOrGroup[]>([]);
+    const [grammarSets, setGrammarSets] = useState<GrammarSetDTO[]>(defaultMockGrammarSets);
 
     const fetchExtraData = useCallback(async () => {
         try {
             const sets = await studySetService.getAllStudySets();
             setStudySets(sets);
+
+            const gSets = await grammarService.getAllGrammarSets();
+            if (gSets && gSets.length > 0) {
+                setGrammarSets(gSets);
+            }
 
             if (role === 'TEACHER') {
                 const classes = await classGroupService.getUserClasses();
@@ -154,6 +168,17 @@ const VocaFoldersPage = () => {
                                 }`}
                         >
                             <Layers className="h-4 w-4" /> Bộ từ vựng ({studySets.length})
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => setTab("grammar")}
+                            className={`inline-flex h-10 items-center gap-2 rounded-full px-5 text-xs font-bold transition cursor-pointer ${tab === "grammar"
+                                ? "bg-primary text-primary-foreground shadow-pop"
+                                : "border border-border bg-card text-foreground hover:bg-muted"
+                                }`}
+                        >
+                            <PenTool className="h-4 w-4" /> Bộ ngữ pháp ({grammarSets.length})
                         </button>
 
                         <label className="relative ml-auto flex w-full max-w-xs items-center">
@@ -289,7 +314,7 @@ const VocaFoldersPage = () => {
                                     {studySets
                                         .filter((s) => s.titleName.toLowerCase().includes(searchTerm.toLowerCase()))
                                         .map((s) => {
-                                            const termsCount = s.vocabularies ? s.vocabularies.length : (0);
+                                             const termsCount = s.vocabularies ? s.vocabularies.length : (0);
                                             const matchedFolder = s.folderId ? folders.find((f) => f.id === s.folderId) : folders.find((f) => f.slug === s.folderSlug);
                                             const folderName = s.folderName || matchedFolder?.name || (s.folderSlug ? `Thư mục: ${s.folderSlug}` : null);
 
@@ -322,6 +347,52 @@ const VocaFoldersPage = () => {
                                                 </article>
                                             );
                                         })}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* 6. TAB 4: BỘ NGỮ PHÁP (GRAMMAR SETS) */}
+                    {tab === "grammar" && (
+                        <div>
+                            {grammarSets.length === 0 ? (
+                                <div className="surface-card p-10 text-center space-y-3">
+                                    <PenTool className="w-10 h-10 text-muted-foreground mx-auto" />
+                                    <h3 className="text-sm font-bold text-foreground">Chưa có bộ ngữ pháp nào</h3>
+                                    <p className="text-xs text-muted-foreground">Các bộ bài học ngữ pháp chuyên sâu sẽ sớm được cập nhật tại đây.</p>
+                                </div>
+                            ) : (
+                                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                                    {grammarSets
+                                        .filter((g) => (g.title || "").toLowerCase().includes(searchTerm.toLowerCase()))
+                                        .map((g) => (
+                                            <article key={g.id} className="surface-card p-5 flex flex-col justify-between">
+                                                <div>
+                                                    <div className="flex items-start justify-between gap-3">
+                                                        <EmojiTile>{g.emoji || "📐"}</EmojiTile>
+                                                        <Pill tone="info">{g.level || "B1 - B2"}</Pill>
+                                                    </div>
+                                                    <h3 className="mt-4 block font-bold text-foreground text-base hover:text-primary transition">
+                                                        {g.title}
+                                                    </h3>
+                                                    <p className="mt-1 text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                                                        {g.description || "Bộ bài học cấu trúc ngữ pháp trọng tâm theo chủ điểm."}
+                                                    </p>
+                                                </div>
+
+                                                <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
+                                                    <span className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+                                                        <Layers className="h-3.5 w-3.5 text-primary" /> {g.grammarCount || 3} chủ điểm
+                                                    </span>
+                                                    <Link
+                                                        to={`/studyset/${g.slug || g.id}/grammar`}
+                                                        className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
+                                                    >
+                                                        <BookOpen className="h-3.5 w-3.5" /> Học ngữ pháp →
+                                                    </Link>
+                                                </div>
+                                            </article>
+                                        ))}
                                 </div>
                             )}
                         </div>

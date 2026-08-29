@@ -1,17 +1,14 @@
 package quizlet.backend.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import quizlet.backend.base.APIResponse;
+import quizlet.backend.dto.res.APIResponse;
 import quizlet.backend.dto.VocabularyFlashCardDTO;
-import quizlet.backend.model.Vocabulary;
 import quizlet.backend.services.VocabularyService;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/vocabularies")

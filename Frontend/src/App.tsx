@@ -29,6 +29,7 @@ import StudyFlashcardsPage from './pages/study/StudyFlashcardsPage';
 import StudyLearnPage from './pages/study/StudyLearnPage';
 import StudyTestPage from './pages/study/StudyTestPage';
 import StudyGrammarPage from './pages/study/StudyGrammarPage';
+import StudyGrammarTestPage from './pages/study/StudyGrammarTestPage';
 import StudyReadingPage from './pages/study/StudyReadingPage';
 
 function App() {
@@ -69,6 +70,10 @@ function App() {
 
             <Route path="/folders/:folderSlug/:slug/grammar" element={<StudyGrammarPage />} />
             <Route path="/studyset/:slug/grammar" element={<StudyGrammarPage />} />
+            <Route path="/grammar/:slug" element={<StudyGrammarPage />} />
+            <Route path="/folders/:folderSlug/:slug/grammar/test" element={<StudyGrammarTestPage />} />
+            <Route path="/studyset/:slug/grammar/test" element={<StudyGrammarTestPage />} />
+            <Route path="/grammar/:slug/test" element={<StudyGrammarTestPage />} />
 
             <Route path="/folders/:folderSlug/:slug/reading" element={<StudyReadingPage />} />
             <Route path="/studyset/:slug/reading" element={<StudyReadingPage />} />

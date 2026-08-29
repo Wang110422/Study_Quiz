@@ -1,4 +1,4 @@
-package quizlet.backend.authe;
+package quizlet.backend.security.jwt;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;

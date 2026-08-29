@@ -3,7 +3,7 @@ package quizlet.backend.services;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import quizlet.backend.dto.CreatePathRequest;
+import quizlet.backend.dto.req.CreatePathRequest;
 import quizlet.backend.model.StudyPath;
 import quizlet.backend.model.StudyPathItem;
 import quizlet.backend.model.StudySet;

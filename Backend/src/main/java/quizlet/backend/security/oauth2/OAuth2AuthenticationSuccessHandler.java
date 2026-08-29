@@ -1,4 +1,4 @@
-package quizlet.backend.authe;
+package quizlet.backend.security.oauth2;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 import quizlet.backend.model.User;
 import quizlet.backend.repository.UserRepository;
+import quizlet.backend.security.jwt.JwtTokenProvider;
 import quizlet.backend.services.UserService;
 
 import java.io.IOException;

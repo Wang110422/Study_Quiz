@@ -32,29 +32,47 @@ import examService, {
   type QuestionDTO,
 } from '@/services/examService';
 
-// ==============================================================================
-// 🛠️ Helper chuyển đổi đường dẫn Media (Audio / Image)
-// ==============================================================================
 const getMediaAudioUrl = (audioUrl?: string | null): string => {
   if (!audioUrl) return '';
   if (audioUrl.startsWith('http://') || audioUrl.startsWith('https://') || audioUrl.startsWith('/')) {
     return audioUrl;
   }
-  // Xử lý tên file hoặc đường dẫn Windows: D:\Wang\English\Toeic\Listening\Audio\E26-T09-62-64
+  // Xử lý tên file hoặc đường dẫn Windows: D:\Wang\English\Toeic\Audio\E26-T09-62-64
   const filename = audioUrl.split(/[\\/]/).pop() || audioUrl;
   const cleanName = filename.endsWith('.mp3') ? filename : `${filename}.mp3`;
   return `http://localhost:8080/media/audio/${cleanName}`;
 };
 
-const getMediaImageUrl = (imageUrl?: string | null): string => {
-  if (!imageUrl) return '';
-  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://') || imageUrl.startsWith('/')) {
-    return imageUrl;
+const getMediaImageUrls = (imageUrl?: string | null): string[] => {
+  if (!imageUrl || !imageUrl.trim()) return [];
+
+  let rawList: string[] = [];
+  const trimmed = imageUrl.trim();
+
+  // 1. Kiểm tra nếu là chuỗi mảng JSON: '["img1.png", "img2.png"]'
+  if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+    try {
+      rawList = JSON.parse(trimmed);
+    } catch {
+      rawList = [trimmed];
+    }
+  } else if (trimmed.includes(',') || trimmed.includes(';') || trimmed.includes('|')) {
+    // 2. Phân tách bởi dấu phẩy, chấm phẩy hoặc gạch đứng
+    rawList = trimmed.split(/[,;|]/).map((s) => s.trim()).filter(Boolean);
+  } else {
+    // 3. Tên file hoặc đường dẫn đơn
+    rawList = [trimmed];
   }
-  // Xử lý tên file hoặc đường dẫn Windows: D:\Wang\English\Toeic\Listening\Image\E26-T01-1
-  const filename = imageUrl.split(/[\\/]/).pop() || imageUrl;
-  const cleanName = filename.match(/\.(jpg|jpeg|png|webp|gif)$/i) ? filename : `${filename}.jpg`;
-  return `http://localhost:8080/media/image/${cleanName}`;
+
+  return rawList.map((item) => {
+    if (item.startsWith('http://') || item.startsWith('https://') || item.startsWith('/')) {
+      return item;
+    }
+    const filename = item.split(/[\\/]/).pop() || item;
+    // Chuẩn hóa đuôi ảnh: ưu tiên .png theo kho ảnh TOEIC, hoặc giữ .jpg, .jpeg, .webp
+    const cleanName = filename.match(/\.(png|jpg|jpeg|webp|gif)$/i) ? filename : `${filename}.png`;
+    return `http://localhost:8080/media/image/${cleanName}`;
+  });
 };
 
 // ==============================================================================
@@ -322,6 +340,45 @@ const MockExamRoomPage = () => {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
+  // Danh sách Sections đã sắp xếp chuẩn theo orderIndex (Nghe orderIndex=1 làm trước, Đọc orderIndex=2 làm sau)
+  const sections = useMemo(() => {
+    if (!exam?.sections) return [];
+    return [...exam.sections].sort((a, b) => (a.orderIndex ?? 999) - (b.orderIndex ?? 999));
+  }, [exam?.sections]);
+
+  const currentSection: SectionDTO | undefined = sections[currentSectionIndex];
+  const groups: PassageGroupDTO[] = useMemo(() => {
+    if (!currentSection?.passageGroups) return [];
+    return [...currentSection.passageGroups].sort((a, b) => (a.orderIndex ?? 999) - (b.orderIndex ?? 999));
+  }, [currentSection?.passageGroups]);
+
+  const currentGroup: PassageGroupDTO | undefined = groups[currentGroupIndex];
+  const currentQuestions: QuestionDTO[] = useMemo(() => {
+    if (!currentGroup?.questions) return [];
+    return [...currentGroup.questions].sort((a, b) => (a.orderIndex ?? 999) - (b.orderIndex ?? 999));
+  }, [currentGroup?.questions]);
+
+  // Tổng hợp toàn bộ câu hỏi trong bài thi để vẽ Question Grid theo thứ tự chuẩn
+  const allFlatQuestions = useMemo(() => {
+    const list: { question: QuestionDTO; sectionIdx: number; groupIdx: number; qIndexInExam: number }[] = [];
+    let count = 1;
+    sections.forEach((sec, sIdx) => {
+      const sortedPgs = [...(sec.passageGroups || [])].sort((a, b) => (a.orderIndex ?? 999) - (b.orderIndex ?? 999));
+      sortedPgs.forEach((pg, gIdx) => {
+        const sortedQs = [...(pg.questions || [])].sort((a, b) => (a.orderIndex ?? 999) - (b.orderIndex ?? 999));
+        sortedQs.forEach((q) => {
+          list.push({
+            question: q,
+            sectionIdx: sIdx,
+            groupIdx: gIdx,
+            qIndexInExam: count++,
+          });
+        });
+      });
+    });
+    return list;
+  }, [sections]);
+
   // Xử lý khi người dùng THOÁT KHỎI PHÒNG THI
   const handleExit = async () => {
     if (!window.confirm('Bạn có chắc chắn muốn thoát khỏi phòng thi? Bài thi sẽ được chấm và lưu kết quả đến thời điểm hiện tại.')) {
@@ -385,45 +442,6 @@ const MockExamRoomPage = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Danh sách Sections đã sắp xếp chuẩn theo orderIndex (Nghe orderIndex=1 làm trước, Đọc orderIndex=2 làm sau)
-  const sections = useMemo(() => {
-    if (!exam?.sections) return [];
-    return [...exam.sections].sort((a, b) => (a.orderIndex ?? 999) - (b.orderIndex ?? 999));
-  }, [exam?.sections]);
-
-  const currentSection: SectionDTO | undefined = sections[currentSectionIndex];
-  const groups: PassageGroupDTO[] = useMemo(() => {
-    if (!currentSection?.passageGroups) return [];
-    return [...currentSection.passageGroups].sort((a, b) => (a.orderIndex ?? 999) - (b.orderIndex ?? 999));
-  }, [currentSection?.passageGroups]);
-
-  const currentGroup: PassageGroupDTO | undefined = groups[currentGroupIndex];
-  const currentQuestions: QuestionDTO[] = useMemo(() => {
-    if (!currentGroup?.questions) return [];
-    return [...currentGroup.questions].sort((a, b) => (a.orderIndex ?? 999) - (b.orderIndex ?? 999));
-  }, [currentGroup?.questions]);
-
-  // Tổng hợp toàn bộ câu hỏi trong bài thi để vẽ Question Grid theo thứ tự chuẩn
-  const allFlatQuestions = useMemo(() => {
-    const list: { question: QuestionDTO; sectionIdx: number; groupIdx: number; qIndexInExam: number }[] = [];
-    let count = 1;
-    sections.forEach((sec, sIdx) => {
-      const sortedPgs = [...(sec.passageGroups || [])].sort((a, b) => (a.orderIndex ?? 999) - (b.orderIndex ?? 999));
-      sortedPgs.forEach((pg, gIdx) => {
-        const sortedQs = [...(pg.questions || [])].sort((a, b) => (a.orderIndex ?? 999) - (b.orderIndex ?? 999));
-        sortedQs.forEach((q) => {
-          list.push({
-            question: q,
-            sectionIdx: sIdx,
-            groupIdx: gIdx,
-            qIndexInExam: count++,
-          });
-        });
-      });
-    });
-    return list;
-  }, [sections]);
-
   // Xử lý chọn đáp án
   const handleSelectAnswer = (qId: number, answer: string) => {
     if (isSubmitted) return;
@@ -467,6 +485,26 @@ const MockExamRoomPage = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // 🌟 Lọc danh sách câu hỏi chỉ thuộc Section hiện tại (VD: Listening: 1-100, Reading: 101-200)
+  const currentSectionQuestions = useMemo(() => {
+    return allFlatQuestions.filter((item) => item.sectionIdx === currentSectionIndex);
+  }, [allFlatQuestions, currentSectionIndex]);
+
+  const answeredCountInSection = useMemo(() => {
+    return currentSectionQuestions.filter((item) => !!userAnswers[item.question.id]).length;
+  }, [currentSectionQuestions, userAnswers]);
+
+  const currentSkillName = currentSection?.skill || 'Listening';
+  const toeicPartStr = currentGroup?.toeicPart || (currentSectionIndex === 0 ? 'PART_1' : 'PART_3');
+  const partTitleName = currentGroup?.title || (toeicPartStr ? toeicPartStr.replace('_', ' ') : `Part ${currentGroupIndex + 1}`);
+  const directionsText = getToeicDirections(toeicPartStr, currentSkillName);
+
+  const audioSrc = getMediaAudioUrl(currentGroup?.audioUrl);
+  const imageUrls = getMediaImageUrls(currentGroup?.imageUrl);
+
+  const firstQNum = currentSectionQuestions[0]?.qIndexInExam || 1;
+  const lastQNum = currentSectionQuestions[currentSectionQuestions.length - 1]?.qIndexInExam || currentSectionQuestions.length;
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#1F0038] text-white flex flex-col items-center justify-center gap-3 font-sans">
@@ -489,14 +527,6 @@ const MockExamRoomPage = () => {
     );
   }
 
-  const currentSkillName = currentSection?.skill || 'Listening';
-  const toeicPartStr = currentGroup?.toeicPart || (currentSectionIndex === 0 ? 'PART_1' : 'PART_3');
-  const partTitleName = currentGroup?.title || (toeicPartStr ? toeicPartStr.replace('_', ' ') : `Part ${currentGroupIndex + 1}`);
-  const directionsText = getToeicDirections(toeicPartStr, currentSkillName);
-
-  const audioSrc = getMediaAudioUrl(currentGroup?.audioUrl);
-  const imageSrc = getMediaImageUrl(currentGroup?.imageUrl);
-
   return (
     <div className="min-h-screen bg-[#F4F5F8] text-slate-800 font-sans flex flex-col select-none">
       {/* 🌟 1. TOP BAR MÀU TÍM ĐẬM CHUẨN MẪU (#1F0038) */}
@@ -506,11 +536,16 @@ const MockExamRoomPage = () => {
             <BookOpen className="h-4 w-4" />
           </span>
           <div>
-            <span className="text-xs text-purple-200/90 font-medium block">
-              {currentSkillName}
-            </span>
-            <h2 className="text-base sm:text-lg font-bold tracking-tight text-white line-clamp-1">
-              {viewMode === 'intro' ? `${partTitleName} - Giới thiệu phần thi` : `${partTitleName} (Nhóm ${currentGroupIndex + 1}/${groups.length})`}
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded-md bg-purple-500/30 text-purple-200 font-bold text-[10px] uppercase">
+                {currentSkillName}
+              </span>
+              <span className="text-xs text-purple-200/80 font-medium">
+                {partTitleName} {viewMode === 'questions' ? `(Nhóm ${currentGroupIndex + 1}/${groups.length})` : ''}
+              </span>
+            </div>
+            <h2 className="text-base sm:text-lg font-bold tracking-tight text-white line-clamp-1 mt-0.5">
+              {exam.title}
             </h2>
           </div>
         </div>
@@ -715,34 +750,46 @@ const MockExamRoomPage = () => {
                 </div>
               )}
 
-              {/* 2. BÊN DƯỚI: PHẦN ẢNH MINH HỌA (NẾU CÓ IMAGE) */}
-              {(currentGroup?.imageUrl || imageSrc) && (
-                <div className="space-y-2">
+              {/* 2. BÊN DƯỚI: PHẦN ẢNH MINH HỌA (HỖ TRỢ NHIỀU ẢNH XẾP CHỒNG TỪ TRÊN XUỐNG DƯỚI) */}
+              {imageUrls.length > 0 && (
+                <div className="space-y-3">
                   <div className="flex items-center justify-between text-xs font-bold text-slate-700">
                     <span className="flex items-center gap-1.5">
                       <ImageIcon className="w-4 h-4 text-purple-600" />
-                      Ảnh minh họa: {currentGroup?.imageUrl || `Question Image`}
+                      Ảnh minh họa ({imageUrls.length} ảnh): {currentGroup?.imageUrl || 'Passage Images'}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => setZoomedImage(imageSrc)}
-                      className="text-purple-600 hover:text-purple-800 text-xs inline-flex items-center gap-1 cursor-pointer"
-                    >
-                      <Maximize2 className="w-3.5 h-3.5" /> Xem lớn
-                    </button>
                   </div>
 
-                  <div className="rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center p-2">
-                    <img
-                      src={imageSrc}
-                      alt="Exam illustration"
-                      className="max-h-[360px] w-auto object-contain rounded-xl shadow-xs"
-                      onError={(e) => {
-                        // Fallback nếu ảnh không tồn tại
-                        (e.target as HTMLImageElement).src =
-                          'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=60';
-                      }}
-                    />
+                  <div className="space-y-4">
+                    {imageUrls.map((imgSrc, imgIdx) => (
+                      <div key={imgSrc + imgIdx} className="space-y-1.5">
+                        <div className="flex items-center justify-between text-[11px] font-semibold text-purple-900 bg-purple-50/80 px-3 py-1.5 rounded-xl border border-purple-100/80">
+                          <span>
+                            📄 {imageUrls.length > 1 ? `Ảnh ${imgIdx + 1} / ${imageUrls.length}` : 'Ảnh đoạn văn'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setZoomedImage(imgSrc)}
+                            className="text-purple-600 hover:text-purple-800 text-xs inline-flex items-center gap-1 cursor-pointer font-bold"
+                          >
+                            <Maximize2 className="w-3 h-3" /> Xem lớn
+                          </button>
+                        </div>
+
+                        <div className="rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center p-2.5">
+                          <img
+                            src={imgSrc}
+                            alt={`Passage Illustration ${imgIdx + 1}`}
+                            className="max-h-[520px] w-auto max-w-full object-contain rounded-xl shadow-xs"
+                            onError={(e) => {
+                              // Fallback nếu ảnh không tồn tại
+                              (e.target as HTMLImageElement).src =
+                                'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=60';
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
@@ -811,11 +858,10 @@ const MockExamRoomPage = () => {
                                 key={opt}
                                 type="button"
                                 onClick={() => handleSelectAnswer(q.id, opt)}
-                                className={`p-3.5 rounded-xl border text-xs text-left transition flex items-center justify-between cursor-pointer ${
-                                  isSelected
+                                className={`p-3.5 rounded-xl border text-xs text-left transition flex items-center justify-between cursor-pointer ${isSelected
                                     ? 'border-purple-600 bg-purple-100 text-purple-950 font-bold shadow-xs'
                                     : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
-                                }`}
+                                  }`}
                               >
                                 <span className="line-clamp-2">{opt}</span>
                                 {isSelected && (
@@ -874,7 +920,7 @@ const MockExamRoomPage = () => {
               </div>
             </div>
 
-            {/* 🌟 CỘT PHẢI: QUESTION GRID (DANH SÁCH TOÀN BỘ CÂU HỎI) & ĐẾM GIỜ */}
+            {/* 🌟 CỘT PHẢI: QUESTION GRID (CHỈ HIỂN THỊ CÂU HỎI CỦA SECTION HIỆN TẠI) & ĐẾM GIỜ */}
             <aside className="space-y-5">
               {/* Card Đồng Hồ & Tiến Độ */}
               <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
@@ -887,59 +933,65 @@ const MockExamRoomPage = () => {
                   </span>
                 </div>
 
-                {/* Thanh Tiến độ làm bài */}
+                {/* Thanh Tiến độ làm bài trong Section hiện tại */}
                 <div className="space-y-1.5 pt-2 border-t border-slate-100">
                   <div className="flex justify-between text-xs text-slate-600 font-semibold">
-                    <span>Đã làm:</span>
+                    <span>Đã làm ({currentSkillName}):</span>
                     <span className="font-bold text-purple-700">
-                      {Object.keys(userAnswers).length} / {allFlatQuestions.length} câu
+                      {answeredCountInSection} / {currentSectionQuestions.length} câu
                     </span>
                   </div>
                   <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full transition-all duration-300"
                       style={{
-                        width: `${allFlatQuestions.length > 0 ? (Object.keys(userAnswers).length / allFlatQuestions.length) * 100 : 0}%`,
+                        width: `${currentSectionQuestions.length > 0 ? (answeredCountInSection / currentSectionQuestions.length) * 100 : 0}%`,
                       }}
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Card Bảng Câu Hỏi (Question Grid Palette) */}
+              {/* Card Bảng Câu Hỏi (Question Grid Palette) - Chỉ hiển thị câu hỏi của Section hiện tại */}
               <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <Layers className="w-4 h-4 text-purple-600" /> Danh sách câu hỏi:
+                    <Layers className="w-4 h-4 text-purple-600" />
+                    Câu hỏi {currentSkillName} ({currentSectionQuestions.length > 0 ? `Câu ${firstQNum} - ${lastQNum}` : '0 câu'}):
                   </span>
                 </div>
 
-                {/* Lưới số thứ tự các câu hỏi */}
-                <div className="grid grid-cols-5 gap-2 max-h-[380px] overflow-y-auto p-1">
-                  {allFlatQuestions.map((item) => {
-                    const isAnswered = !!userAnswers[item.question.id];
-                    const isCurrentGroup =
-                      item.sectionIdx === currentSectionIndex && item.groupIdx === currentGroupIndex;
+                {/* Lưới số thứ tự các câu hỏi thuộc Section này */}
+                {currentSectionQuestions.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-slate-400 font-medium">
+                    Chưa có câu hỏi cho phần này
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-5 gap-2 max-h-[380px] overflow-y-auto p-1">
+                    {currentSectionQuestions.map((item) => {
+                      const isAnswered = !!userAnswers[item.question.id];
+                      const isCurrentGroup =
+                        item.sectionIdx === currentSectionIndex && item.groupIdx === currentGroupIndex;
 
-                    return (
-                      <button
-                        key={item.question.id}
-                        type="button"
-                        onClick={() => handleJumpToQuestion(item.sectionIdx, item.groupIdx)}
-                        className={`h-9 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer ${
-                          isCurrentGroup
-                            ? 'bg-[#1F0038] text-white shadow-xs ring-2 ring-purple-400'
-                            : isAnswered
-                              ? 'bg-purple-100 text-purple-900 border border-purple-300'
-                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
-                        title={`Câu ${item.qIndexInExam}`}
-                      >
-                        {item.qIndexInExam}
-                      </button>
-                    );
-                  })}
-                </div>
+                      return (
+                        <button
+                          key={item.question.id}
+                          type="button"
+                          onClick={() => handleJumpToQuestion(item.sectionIdx, item.groupIdx)}
+                          className={`h-9 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer ${isCurrentGroup
+                              ? 'bg-[#1F0038] text-white shadow-xs ring-2 ring-purple-400'
+                              : isAnswered
+                                ? 'bg-purple-100 text-purple-900 border border-purple-300'
+                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            }`}
+                          title={`Câu ${item.qIndexInExam}`}
+                        >
+                          {item.qIndexInExam}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
 
                 {/* Chú thích màu sắc */}
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">

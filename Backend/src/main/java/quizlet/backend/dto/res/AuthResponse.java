@@ -1,4 +1,4 @@
-package quizlet.backend.dto;
+package quizlet.backend.dto.res;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

@@ -5,7 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import quizlet.backend.base.APIResponse;
+import quizlet.backend.dto.res.APIResponse;
 import quizlet.backend.dto.ExamAttemptDTO;
 import quizlet.backend.dto.ExamDTO;
 import quizlet.backend.enums.ExamType;

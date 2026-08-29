@@ -1,4 +1,4 @@
-package quizlet.backend.authe;
+package quizlet.backend.security.oauth2;
 
 import lombok.Data;
 import org.springframework.security.core.GrantedAuthority;

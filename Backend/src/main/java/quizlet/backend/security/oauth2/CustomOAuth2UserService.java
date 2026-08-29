@@ -1,4 +1,4 @@
-package quizlet.backend.authe;
+package quizlet.backend.security.oauth2;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
@@ -7,7 +7,6 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import quizlet.backend.model.User;
-import quizlet.backend.repository.UserRepository;
 import quizlet.backend.services.UserService;
 
 @Service

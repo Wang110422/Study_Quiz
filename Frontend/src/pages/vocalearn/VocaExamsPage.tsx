@@ -181,7 +181,10 @@ const VocaExamsPage = () => {
                     </div>
 
                     <BtnPrimary
-                      onClick={() => navigate(`/exams/${e.id}/practice`)}
+                      onClick={() => {
+                        const skillParam = activeTab.skillType ? `?skill=${activeTab.skillType}` : '';
+                        navigate(`/exams/${e.id}/practice${skillParam}`);
+                      }}
                       className="mt-2 h-11 w-full rounded-2xl shadow-pop flex items-center justify-center gap-2 cursor-pointer"
                     >
                       Luyện đề này <ArrowRight className="h-4 w-4" />

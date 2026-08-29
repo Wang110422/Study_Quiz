@@ -1,4 +1,4 @@
-package quizlet.backend.dto;
+package quizlet.backend.dto.req;
 
 import lombok.Data;
 

@@ -102,7 +102,7 @@ export const examService = {
 
     submitAttempt: async (
         attemptId: number | string,
-        data: { totalScore: number; totalTime: number; answerDetail: string }
+        data: { totalScore?: number; totalTime?: number; answerDetail?: string }
     ): Promise<ExamAttemptDTO | null> => {
         try {
             const response = await api.post(`/exams/attempt/${attemptId}/submit`, data);

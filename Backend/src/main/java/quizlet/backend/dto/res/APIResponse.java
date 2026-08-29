@@ -1,7 +1,6 @@
-package quizlet.backend.base;
+package quizlet.backend.dto.res;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.Builder;
 import lombok.Data;
 
 @Data

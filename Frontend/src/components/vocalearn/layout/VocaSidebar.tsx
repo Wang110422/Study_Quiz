@@ -60,21 +60,60 @@ export function VocaSidebar() {
   ];
 
   const isActive = (to: string) => {
+    const p = location.pathname;
+
     if (to === "/dashboard") {
-      return location.pathname === "/" || location.pathname === "/dashboard" || location.pathname.startsWith("/studyset");
+      return p === "/" || p === "/dashboard";
     }
-    if (to === "/classes" || to === "/study-groups") {
+
+    if (to === "/lessons") {
       return (
-        location.pathname.startsWith("/classes") ||
-        location.pathname.startsWith("/study-groups") ||
-        location.pathname.startsWith("/study_group") ||
-        location.pathname.startsWith("/groups")
+        p.startsWith("/lessons") ||
+        p.startsWith("/grammar") ||
+        p.includes("/grammar") ||
+        p.startsWith("/practice")
       );
     }
-    if (to === "/folders") {
-      return location.pathname.startsWith("/folders");
+
+    if (to === "/exams") {
+      return p.startsWith("/exams") || p.startsWith("/exam-practice");
     }
-    return location.pathname.startsWith(to);
+
+    if (to === "/mock-test") {
+      return p.startsWith("/mock-test") || p.startsWith("/mock-exam");
+    }
+
+    if (to === "/classes" || to === "/study-groups") {
+      return (
+        p.startsWith("/classes") ||
+        p.startsWith("/study-groups") ||
+        p.startsWith("/study_group") ||
+        p.startsWith("/groups")
+      );
+    }
+
+    if (to === "/folders") {
+      return (
+        p.startsWith("/folders") ||
+        p.startsWith("/library") ||
+        p.startsWith("/create-set") ||
+        (p.startsWith("/studyset") && !p.includes("/grammar"))
+      );
+    }
+
+    if (to === "/paths") {
+      return p.startsWith("/paths") || p.startsWith("/roadmap");
+    }
+
+    if (to === "/scan") {
+      return p.startsWith("/scan");
+    }
+
+    if (to === "/trash") {
+      return p.startsWith("/trash");
+    }
+
+    return p.startsWith(to);
   };
 
   useEffect(() => {

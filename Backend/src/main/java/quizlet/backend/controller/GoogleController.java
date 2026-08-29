@@ -5,7 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import quizlet.backend.base.APIResponse;
+import quizlet.backend.dto.res.APIResponse;
 import quizlet.backend.dto.FolderDTO;
 import quizlet.backend.dto.StudySetDTO;
 import quizlet.backend.model.User;
@@ -14,7 +14,6 @@ import quizlet.backend.services.FolderService;
 import quizlet.backend.services.GoogleSheetService;
 import quizlet.backend.services.StudySetService;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController

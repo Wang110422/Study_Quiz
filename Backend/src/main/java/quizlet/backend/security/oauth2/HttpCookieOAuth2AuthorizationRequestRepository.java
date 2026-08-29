@@ -1,4 +1,4 @@
-package quizlet.backend.authe;
+package quizlet.backend.security.oauth2;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
