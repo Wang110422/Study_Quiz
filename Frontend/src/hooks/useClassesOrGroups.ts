@@ -8,12 +8,14 @@ export const useClassesOrGroups = () => {
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
-    // 1. Fetch list of classes or groups based on role
+    // 1. Fetch list of classes or groups based on current URL path
+    const isClassesPage = window.location.pathname.startsWith('/classes');
+
     const fetchData = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            if (isTeacher) {
+            if (isClassesPage) {
                 const list = await classGroupService.getUserClasses();
                 setClassesOrGroups(list);
             } else {
@@ -26,7 +28,7 @@ export const useClassesOrGroups = () => {
         } finally {
             setLoading(false);
         }
-    }, [isTeacher]);
+    }, [isClassesPage]);
 
     // 2. Process auto join by code from URL, then fetch list
     useEffect(() => {
@@ -35,7 +37,7 @@ export const useClassesOrGroups = () => {
             const autoJoinCode = urlParams.get('joinCode') || urlParams.get('code');
             if (autoJoinCode) {
                 try {
-                    if (isTeacher) {
+                    if (isClassesPage || autoJoinCode.toUpperCase().startsWith('CLASS-')) {
                         await classGroupService.joinClassByCode(autoJoinCode);
                     } else {
                         await classGroupService.joinGroupByCode(autoJoinCode);
@@ -49,13 +51,13 @@ export const useClassesOrGroups = () => {
         };
 
         init();
-    }, [isTeacher, fetchData]);
+    }, [isClassesPage, fetchData]);
 
     // 3. Create a new class or group
     const createClassOrGroup = async (data: { name: string; description: string }): Promise<ClassOrGroup | null> => {
         try {
             let res: ClassOrGroup;
-            if (isTeacher) {
+            if (isClassesPage || isTeacher) {
                 res = await classGroupService.createClass(data);
             } else {
                 res = await classGroupService.createGroup(data);
@@ -72,7 +74,7 @@ export const useClassesOrGroups = () => {
     const joinByCode = async (joinCode: string): Promise<ClassOrGroup | null> => {
         try {
             let res: ClassOrGroup;
-            if (isTeacher) {
+            if (isClassesPage || joinCode.toUpperCase().startsWith('CLASS-')) {
                 res = await classGroupService.joinClassByCode(joinCode);
             } else {
                 res = await classGroupService.joinGroupByCode(joinCode);

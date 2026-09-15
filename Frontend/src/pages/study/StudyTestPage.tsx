@@ -382,11 +382,15 @@ const StudyTestPage = () => {
                             <button
                                 type="button"
                                 onClick={async () => {
-                                    const pathItemId = location.state?.pathItemId;
+                                    const pathItemId = location.state?.pathItemId || location.state?.taskId;
                                     if (pathItemId) {
                                         await updateDbTestProgress(pathItemId);
                                     }
-                                    navigate(basePath, { state: location.state });
+                                    if (location.state?.from === '/paths') {
+                                        navigate('/paths');
+                                    } else {
+                                        navigate(basePath, { state: location.state });
+                                    }
                                 }}
                                 className="px-10 py-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-extrabold rounded-2xl transition-all shadow-lg shadow-blue-500/25 cursor-pointer flex items-center gap-2 active:scale-98"
                             >

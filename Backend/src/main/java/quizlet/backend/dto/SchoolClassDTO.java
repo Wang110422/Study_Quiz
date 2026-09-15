@@ -17,7 +17,9 @@ public class SchoolClassDTO {
     private int studentsCount;
     private int setsCount;
     private int foldersCount;
+    private int examsCount;
     private List<UserDTO> students;
     private List<StudySetDTO> studySets;
     private List<FolderDTO> folders;
+    private List<ExamDTO> exams;
 }

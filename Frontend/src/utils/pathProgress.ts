@@ -1,7 +1,7 @@
 // Helper quản lý tiến trình Lộ trình học (Lưu trực tiếp vào MySQL Database via Spring Boot API)
-// Loại bỏ hoàn toàn localStorage
+// Kết nối với Roadmap & UserTaskProgress
 
-import studyPathService, { type StudyPathItemDTO } from '../services/studyPathService';
+import roadmapService from '../services/roadmapService';
 
 export interface PathItemProgress {
     completedLearnCount: number;
@@ -11,77 +11,78 @@ export interface PathItemProgress {
     isCompleted: boolean;
 }
 
-export const fetchDbItemProgress = async (itemId?: number): Promise<PathItemProgress> => {
-    if (!itemId) {
+export const fetchDbItemProgress = async (taskId?: number): Promise<PathItemProgress> => {
+    if (!taskId) {
         return {
             completedLearnCount: 0,
             completedTestCount: 0,
-            targetLearnCount: 3,
-            targetTestCount: 3,
+            targetLearnCount: 1,
+            targetTestCount: 1,
             isCompleted: false,
         };
     }
     try {
-        const item: StudyPathItemDTO = await studyPathService.getPathItemById(itemId);
-        if (item) {
+        const progress = await roadmapService.getTaskProgress(taskId);
+        if (progress) {
+            const isDone = Boolean(progress.isCompleted);
             return {
-                completedLearnCount: item.completedLearnCount ?? 0,
-                completedTestCount: item.completedTestCount ?? 0,
-                targetLearnCount: item.targetLearnCount ?? 3,
-                targetTestCount: item.targetTestCount ?? 3,
-                isCompleted: Boolean(item.isCompleted),
+                completedLearnCount: isDone ? 1 : 0,
+                completedTestCount: isDone ? 1 : 0,
+                targetLearnCount: 1,
+                targetTestCount: 1,
+                isCompleted: isDone,
             };
         }
     } catch (e) {
-        console.error('Lỗi khi lấy tiến trình mốc từ Database:', e);
+        console.error('Lỗi khi lấy tiến trình task từ Database:', e);
     }
     return {
         completedLearnCount: 0,
         completedTestCount: 0,
-        targetLearnCount: 3,
-        targetTestCount: 3,
+        targetLearnCount: 1,
+        targetTestCount: 1,
         isCompleted: false,
     };
 };
 
-export const updateDbLearnProgress = async (itemId?: number): Promise<PathItemProgress> => {
-    if (!itemId) {
+export const updateDbLearnProgress = async (taskId?: number): Promise<PathItemProgress> => {
+    if (!taskId) {
         return fetchDbItemProgress();
     }
     try {
-        const updated = await studyPathService.updateItemProgress(itemId, 'LEARN');
+        const updated = await roadmapService.updateTaskProgress(taskId, { mode: 'LEARN', isCompleted: true });
         if (updated) {
             return {
-                completedLearnCount: updated.completedLearnCount ?? 0,
-                completedTestCount: updated.completedTestCount ?? 0,
-                targetLearnCount: updated.targetLearnCount ?? 3,
-                targetTestCount: updated.targetTestCount ?? 3,
+                completedLearnCount: 1,
+                completedTestCount: 0,
+                targetLearnCount: 1,
+                targetTestCount: 1,
                 isCompleted: Boolean(updated.isCompleted),
             };
         }
     } catch (e) {
         console.error('Lỗi khi cập nhật tiến trình Học vào Database:', e);
     }
-    return fetchDbItemProgress(itemId);
+    return fetchDbItemProgress(taskId);
 };
 
-export const updateDbTestProgress = async (itemId?: number): Promise<PathItemProgress> => {
-    if (!itemId) {
+export const updateDbTestProgress = async (taskId?: number): Promise<PathItemProgress> => {
+    if (!taskId) {
         return fetchDbItemProgress();
     }
     try {
-        const updated = await studyPathService.updateItemProgress(itemId, 'TEST');
+        const updated = await roadmapService.updateTaskProgress(taskId, { mode: 'TEST', isCompleted: true });
         if (updated) {
             return {
-                completedLearnCount: updated.completedLearnCount ?? 0,
-                completedTestCount: updated.completedTestCount ?? 0,
-                targetLearnCount: updated.targetLearnCount ?? 3,
-                targetTestCount: updated.targetTestCount ?? 3,
+                completedLearnCount: 1,
+                completedTestCount: 1,
+                targetLearnCount: 1,
+                targetTestCount: 1,
                 isCompleted: Boolean(updated.isCompleted),
             };
         }
     } catch (e) {
         console.error('Lỗi khi cập nhật tiến trình Kiểm tra vào Database:', e);
     }
-    return fetchDbItemProgress(itemId);
+    return fetchDbItemProgress(taskId);
 };

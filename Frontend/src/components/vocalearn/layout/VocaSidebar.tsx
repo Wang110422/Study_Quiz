@@ -18,14 +18,18 @@ import {
   Mail,
   LogOut,
   ChevronRight,
+  GraduationCap,
+  Sparkles,
 } from "lucide-react";
 import { useAuthStore } from "../../../store";
+import { classGroupService } from "../../../services/classGroupService";
 
 export function VocaSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, isTeacher, isAdmin, logout } = useAuthStore();
+  const { user, isTeacher, isAdmin, logout, updateUserStore } = useAuthStore();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isSwitchingRole, setIsSwitchingRole] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
   const fullName = user
@@ -34,16 +38,27 @@ export function VocaSidebar() {
   const userEmail = user?.email || 'user@example.com';
   const avatarInitial = fullName.charAt(0).toUpperCase() || 'U';
 
+  const handleQuickSwitchRole = async () => {
+    try {
+      setIsSwitchingRole(true);
+      const targetRole = isTeacher ? 'STUDENT' : 'TEACHER';
+      await classGroupService.switchRole(targetRole);
+      updateUserStore({ role: targetRole });
+      window.location.reload();
+    } catch (err) {
+      console.error('Lỗi khi chuyển đổi vai trò:', err);
+    } finally {
+      setIsSwitchingRole(false);
+    }
+  };
+
   const items = [
     { to: "/dashboard", label: "Trang chủ", icon: Home },
     { to: "/lessons", label: "Bài học", icon: BookOpenText },
     { to: "/exams", label: "Luyện đề", icon: FileText },
     { to: "/mock-test", label: "Thi thử", icon: Timer },
-    {
-      to: isTeacher || isAdmin ? "/classes" : "/study-groups",
-      label: isTeacher ? "Lớp học" : isAdmin ? "Quản lý Lớp" : "Nhóm học",
-      icon: Users,
-    },
+    { to: "/classes", label: "Lớp học", icon: GraduationCap },
+    ...(!isTeacher ? [{ to: "/study-groups", label: "Nhóm học", icon: Users }] : []),
     { to: "/folders", label: "Thư viện của bạn", icon: Library },
     { to: "/paths", label: "Lộ trình học", icon: RouteIcon },
     { to: "/scan", label: "Quét tài liệu", icon: ScanLine },
@@ -52,6 +67,15 @@ export function VocaSidebar() {
 
   const profileMenuItems = [
     { label: "Hồ sơ cá nhân", icon: User, action: () => navigate("/profile") },
+    {
+      label: isSwitchingRole
+        ? "Đang chuyển vai trò..."
+        : isTeacher
+        ? "Chuyển sang Sinh viên"
+        : "Chuyển sang Giảng viên",
+      icon: Sparkles,
+      action: handleQuickSwitchRole,
+    },
     { label: "Giao diện màn hình", icon: Monitor, hasArrow: true },
     { label: "Cài đặt", icon: Settings, shortcut: "Ctrl.", action: () => navigate("/profile") },
     { label: "Trợ giúp", icon: HelpCircle, hasArrow: true },
@@ -83,9 +107,12 @@ export function VocaSidebar() {
       return p.startsWith("/mock-test") || p.startsWith("/mock-exam");
     }
 
-    if (to === "/classes" || to === "/study-groups") {
+    if (to === "/classes") {
+      return p.startsWith("/classes");
+    }
+
+    if (to === "/study-groups") {
       return (
-        p.startsWith("/classes") ||
         p.startsWith("/study-groups") ||
         p.startsWith("/study_group") ||
         p.startsWith("/groups")

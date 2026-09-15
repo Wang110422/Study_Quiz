@@ -1,6 +1,7 @@
 package quizlet.backend.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import quizlet.backend.security.jwt.JwtTokenProvider;
@@ -11,6 +12,7 @@ import quizlet.backend.enums.Role;
 import quizlet.backend.model.User;
 import quizlet.backend.repository.UserRepository;
 
+import java.time.Duration;
 import java.util.Optional;
 
 @Service
@@ -94,7 +96,6 @@ public class UserService {
         }
 
         String token = jwtTokenProvider.generateToken(user.getId(), user.getEmail());
-
         return AuthResponse.builder()
                 .token(token)
                 .tokenType("Bearer")
@@ -102,6 +103,25 @@ public class UserService {
                 .email(user.getEmail())
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
+                .build();
+    }
+    public ResponseCookie generateCookie(String token) {
+        return ResponseCookie.from("auth_token", token)
+                .httpOnly(true)
+                .secure(false)
+                .path("/")
+                .maxAge(Duration.ofDays(7))
+                .sameSite("Lax")
+                .build();
+    }
+
+    public ResponseCookie cleanCookie() {
+        return ResponseCookie.from("auth_token", "")
+                .httpOnly(true)
+                .secure(false)
+                .path("/")
+                .maxAge(0)
+                .sameSite("Lax")
                 .build();
     }
 }

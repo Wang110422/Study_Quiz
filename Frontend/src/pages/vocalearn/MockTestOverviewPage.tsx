@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import {
   ArrowLeft,
   Clock,
@@ -18,6 +18,7 @@ import examService, { type ExamDTO } from '@/services/examService';
 const MockTestOverviewPage = () => {
   const { examId } = useParams<{ examId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [exam, setExam] = useState<ExamDTO | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [starting, setStarting] = useState<boolean>(false);
@@ -45,10 +46,10 @@ const MockTestOverviewPage = () => {
     try {
       const attempt = await examService.startAttempt(examId, 'REAL_TEST');
       const query = attempt?.id ? `?attemptId=${attempt.id}` : '';
-      navigate(`/mock-test/${examId}/room${query}`);
+      navigate(`/mock-test/${examId}/room${query}`, { state: location.state });
     } catch (err) {
       console.error('Lỗi khi kích hoạt lượt thi:', err);
-      navigate(`/mock-test/${examId}/room`);
+      navigate(`/mock-test/${examId}/room`, { state: location.state });
     } finally {
       setStarting(false);
     }

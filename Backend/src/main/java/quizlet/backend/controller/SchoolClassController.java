@@ -22,6 +22,7 @@ public class SchoolClassController {
 
     // 1. Lấy danh sách lớp học của người dùng hiện tại
     @GetMapping
+    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<List<SchoolClassDTO>>> getUserClasses(@AuthenticationPrincipal User user) {
         APIResponse<List<SchoolClassDTO>> response = new APIResponse<>();
         if (user == null) {
@@ -39,6 +40,7 @@ public class SchoolClassController {
 
     // 1b. Lấy chi tiết 1 lớp học theo ID
     @GetMapping("/{classId}")
+    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<SchoolClassDTO>> getClassById(@PathVariable Long classId) {
         APIResponse<SchoolClassDTO> response = new APIResponse<>();
         SchoolClassDTO classDto = schoolClassService.getClassById(classId);
@@ -132,8 +134,60 @@ public class SchoolClassController {
         return ResponseEntity.ok(response);
     }
 
+    // 6b. Giáo viên thêm Đề thi vào lớp học
+    @PostMapping("/{classId}/exams/{examId}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    public ResponseEntity<APIResponse<SchoolClassDTO>> addExamToClass(
+            @AuthenticationPrincipal User teacher,
+            @PathVariable Long classId,
+            @PathVariable Long examId
+    ) {
+        APIResponse<SchoolClassDTO> response = new APIResponse<>();
+        SchoolClassDTO updated = schoolClassService.addExamToClass(teacher, classId, examId);
+
+        response.setStatus(HttpStatus.OK.value());
+        response.setMessage("Đã thêm Đề thi vào lớp học thành công!");
+        response.setResult(updated);
+        return ResponseEntity.ok(response);
+    }
+
+    // 6c. Giáo viên gỡ Đề thi khỏi lớp học
+    @DeleteMapping("/{classId}/exams/{examId}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    public ResponseEntity<APIResponse<SchoolClassDTO>> removeExamFromClass(
+            @AuthenticationPrincipal User teacher,
+            @PathVariable Long classId,
+            @PathVariable Long examId
+    ) {
+        APIResponse<SchoolClassDTO> response = new APIResponse<>();
+        SchoolClassDTO updated = schoolClassService.removeExamFromClass(teacher, classId, examId);
+
+        response.setStatus(HttpStatus.OK.value());
+        response.setMessage("Đã gỡ Đề thi khỏi lớp học!");
+        response.setResult(updated);
+        return ResponseEntity.ok(response);
+    }
+
+    // 6d. Giáo viên xóa sinh viên khỏi lớp học
+    @DeleteMapping("/{classId}/students/{studentId}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    public ResponseEntity<APIResponse<SchoolClassDTO>> removeStudentFromClass(
+            @AuthenticationPrincipal User teacher,
+            @PathVariable Long classId,
+            @PathVariable Long studentId
+    ) {
+        APIResponse<SchoolClassDTO> response = new APIResponse<>();
+        SchoolClassDTO updated = schoolClassService.removeStudentFromClass(teacher, classId, studentId);
+
+        response.setStatus(HttpStatus.OK.value());
+        response.setMessage("Đã xóa sinh viên khỏi lớp học!");
+        response.setResult(updated);
+        return ResponseEntity.ok(response);
+    }
+
     // 7. Sinh viên tham gia lớp học bằng mã (joinCode)
     @PostMapping("/join")
+    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<SchoolClassDTO>> joinClassByCode(
             @AuthenticationPrincipal User student,
             @RequestParam String joinCode
@@ -147,3 +201,4 @@ public class SchoolClassController {
         return ResponseEntity.ok(response);
     }
 }
+

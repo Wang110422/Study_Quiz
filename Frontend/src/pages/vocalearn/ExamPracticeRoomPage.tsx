@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom';
 import {
   LogOut,
   Volume2,
@@ -34,6 +34,7 @@ import examService, {
   type PassageGroupDTO,
   type QuestionDTO,
 } from '@/services/examService';
+import roadmapService from '@/services/roadmapService';
 
 // ==============================================================================
 // 🛠️ Helpers chuyển đổi Media (Audio / Image)
@@ -261,6 +262,7 @@ const ExamPracticeRoomPage = () => {
   const { examId } = useParams<{ examId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [exam, setExam] = useState<ExamDTO | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -299,6 +301,12 @@ const ExamPracticeRoomPage = () => {
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [showReviewDetails, setShowReviewDetails] = useState<boolean>(false);
 
+  // Chế độ không tính thời gian khi học từ phần bài học mẹo
+  const isUnlimitedTime =
+    searchParams.get('unlimited') === 'true' ||
+    searchParams.get('mode') === 'lesson' ||
+    searchParams.get('noTimer') === 'true';
+
   // Tải chi tiết bài thi từ CSDL Backend
   useEffect(() => {
     const fetchExam = async () => {
@@ -327,14 +335,14 @@ const ExamPracticeRoomPage = () => {
     fetchExam();
   }, [examId]);
 
-  // Bộ đếm ngược thời gian làm bài
+  // Bộ đếm ngược thời gian làm bài (nếu không phải chế độ học bài không giới hạn)
   useEffect(() => {
-    if (isSubmitted) return;
+    if (isSubmitted || isUnlimitedTime) return;
     const timer = setInterval(() => {
       setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
     return () => clearInterval(timer);
-  }, [isSubmitted]);
+  }, [isSubmitted, isUnlimitedTime]);
 
   const formatTimer = (sec: number) => {
     const m = Math.floor(sec / 60);
@@ -554,6 +562,20 @@ const ExamPracticeRoomPage = () => {
       }
     }
 
+    // 3. Cập nhật tiến trình lộ trình nếu đang làm bài từ lộ trình
+    const taskId = location.state?.taskId || location.state?.pathItemId || searchParams.get('taskId');
+    if (taskId) {
+      try {
+        await roadmapService.updateTaskProgress(Number(taskId), {
+          score: calculatedScore,
+          isCompleted: true,
+          mode: 'COMPLETE',
+        });
+      } catch (err) {
+        console.error('Lỗi khi cập nhật tiến độ lộ trình:', err);
+      }
+    }
+
     setIsSubmitted(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -618,7 +640,7 @@ const ExamPracticeRoomPage = () => {
           {/* Bộ đếm thời gian ở Top Bar */}
           <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-950/80 border border-purple-800/60 text-xs font-bold text-purple-200">
             <Clock className="w-3.5 h-3.5 text-purple-400" />
-            <span>{formatTimer(timeLeft)}</span>
+            <span>{isUnlimitedTime ? 'Không tính thời gian' : formatTimer(timeLeft)}</span>
           </div>
 
           {/* Nút Thoát */}
@@ -713,11 +735,19 @@ const ExamPracticeRoomPage = () => {
                 <Eye className="w-4 h-4" /> {showReviewDetails ? 'Ẩn lời giải' : 'Xem đáp án & Lời giải'}
               </button>
 
-              <Link to="/exams">
-                <button className="px-6 py-2.5 rounded-2xl bg-[#1F0038] text-white font-bold text-xs hover:opacity-90 transition cursor-pointer">
-                  Chọn bài luyện tập khác
-                </button>
-              </Link>
+              {location.state?.taskId || searchParams.get('taskId') ? (
+                <Link to="/paths">
+                  <button className="px-6 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition cursor-pointer shadow-md flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4" /> Quay lại Lộ trình học (Đã hoàn thành)
+                  </button>
+                </Link>
+              ) : (
+                <Link to="/exams">
+                  <button className="px-6 py-2.5 rounded-2xl bg-[#1F0038] text-white font-bold text-xs hover:opacity-90 transition cursor-pointer">
+                    Chọn bài luyện tập khác
+                  </button>
+                </Link>
+              )}
             </div>
           </div>
 

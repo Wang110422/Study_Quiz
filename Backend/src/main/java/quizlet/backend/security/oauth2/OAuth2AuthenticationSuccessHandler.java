@@ -4,6 +4,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
@@ -61,16 +63,9 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         String token = jwtTokenProvider.generateToken(user.getId(), user.getEmail());
 
         // Set Cookie auth_token cho trình duyệt
-        jakarta.servlet.http.Cookie cookie = new jakarta.servlet.http.Cookie("auth_token", token);
-        cookie.setPath("/");
-        cookie.setHttpOnly(false);
-        cookie.setMaxAge(864000);
-        response.addCookie(cookie);
+        ResponseCookie resCookie = userService.generateCookie(token);
+        response.addHeader(HttpHeaders.SET_COOKIE, resCookie.toString());
 
-        String targetUrl = UriComponentsBuilder.fromUriString("http://localhost:5173/oauth2/redirect")
-                .queryParam("token", token)
-                .build().toUriString();
-
-        getRedirectStrategy().sendRedirect(request, response, targetUrl);
+        getRedirectStrategy().sendRedirect(request, response, "http://localhost:5173/oauth2/redirect");
     }
 }

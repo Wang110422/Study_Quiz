@@ -6,8 +6,8 @@ services:
     container_name: mysql-container
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-123456}
+      MYSQL_DATABASE: ${DB_NAME:-quizlet_db}
     ports:
       - "3307:3306"
     volumes:
@@ -22,7 +22,7 @@ services:
     container_name: frontend
     restart: always
     ports:
-      - "5173:5173"
+      - "3000:5173"
     depends_on:
       - mysql-db
     networks:
@@ -39,9 +39,9 @@ services:
       - ../Backend_python/.env
       - ../.env
     environment:
-      - BANDAI_JOB_URL=${BANDAI_JOB_URL}
-      - BANDAI_TOKEN=${BANDAI_TOKEN}
-      - BANDAI_MODEL=${BANDAI_MODEL}
+      - BANDAI_JOB_URL=${BANDAI_JOB_URL:-https://paddleocr.aistudio-app.com/api/v2/ocr/jobs}
+      - BANDAI_TOKEN=${BANDAI_TOKEN:-1d4a9cc70271f482b22714a41e440cccc26f2483}
+      - BANDAI_MODEL=${BANDAI_MODEL:-PP-OCRv6}
       - DEFAULT_GOOGLE_API_KEY=${GOOGLE_API_KEY}
     networks:
       - app_network
@@ -57,16 +57,16 @@ services:
       - ../Backend/.env
       - ../.env
     environment:
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=${DB_HOST:-mysql-db}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_NAME=${DB_NAME:-quizlet_db}
+      - DB_USER=${DB_USER:-root}
+      - DB_PASSWORD=${DB_PASSWORD:-123456}
       - DB_URL=jdbc:mysql://${DB_HOST:-mysql-db}:3306/${DB_NAME:-quizlet_db}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       - SPRING_DATASOURCE_URL=jdbc:mysql://${DB_HOST:-mysql-db}:3306/${DB_NAME:-quizlet_db}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - JWT_SECRET=${JWT_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-336876017791-8r50vqspamk1301f1e0vk9jvtlg3o40l.apps.googleusercontent.com}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-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}
+      - JWT_SECRET=${JWT_SECRET:-QuizletBackendSecretKeyForJWTSigningRequirementMinimum256BitsLong123456}
     depends_on:
       - mysql-db
     networks:

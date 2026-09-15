@@ -96,11 +96,15 @@ const StudyLearnPage = () => {
                         <button
                             type="button"
                             onClick={async () => {
-                                const pathItemId = location.state?.pathItemId;
+                                const pathItemId = location.state?.pathItemId || location.state?.taskId;
                                 if (pathItemId) {
                                     await updateDbLearnProgress(pathItemId);
                                 }
-                                navigate(basePath, { state: location.state });
+                                if (location.state?.from === '/paths') {
+                                    navigate('/paths');
+                                } else {
+                                    navigate(basePath, { state: location.state });
+                                }
                             }}
                             className="w-full py-4 bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-sm rounded-2xl transition-all shadow-lg shadow-purple-500/20 cursor-pointer active:scale-95 flex items-center justify-center gap-2"
                         >

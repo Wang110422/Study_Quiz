@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   BookOpenText,
   Sparkles,
@@ -6,6 +6,7 @@ import {
   Play,
   CheckCircle2,
   Loader2,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import VocaHeader from '@/components/vocalearn/layout/VocaHeader';
@@ -19,12 +20,12 @@ import {
   TabPill,
 } from '@/components/app/ui-bits';
 import grammarService, { type GrammarSetDTO } from '@/services/grammarService';
-import studySetService from '@/services/studySetService';
-import type { StudySet } from '@/types';
+import studySetService, { type StudySet } from '@/services/studySetService';
+import studyTipService, { type StudyTipDTO } from '@/services/studyTipService';
+import examService, { type ExamDTO } from '@/services/examService';
 
 // 6 Tabs chính: Nghe, Nói, Đọc, Viết, Từ vựng, Ngữ pháp
 type TabKey = 'listening' | 'speaking' | 'reading' | 'writing' | 'vocab' | 'grammar';
-type SkillKey = 'listening' | 'speaking' | 'reading' | 'writing';
 
 interface TabItem {
   id: TabKey;
@@ -41,127 +42,35 @@ const tabs: TabItem[] = [
   { id: 'grammar', name: 'Ngữ pháp', emoji: '📐' },
 ];
 
-// Dữ liệu Bài học mẹo theo từng kỹ năng (lessonGroups)
-const lessonGroups: Record<SkillKey, { id: string; title: string; summary: string; tips: string[]; cta: string }[]> = {
-  listening: [
-    {
-      id: 'lis-1',
-      title: 'Mẹo làm dạng câu Nhận diện Thông tin chi tiết (Part 1)',
-      summary: 'Kỹ năng bắt từ khóa số điện thoại, địa chỉ, tên riêng và ngày tháng với độ chính xác tuyệt đối.',
-      tips: [
-        'Đọc lướt chỗ trống để dự đoán loại từ cần điền (danh từ, con số, thời gian, tên người).',
-        'Cảnh giác với các bẫy sửa lại thông tin của người nói (Ví dụ: "It is 5 PM, oh sorry, 5:30 PM").',
-        'Chú ý các âm đuôi /s/, /ed/ và cách phát âm bảng chữ cái tiếng Anh khi đánh vần.',
-      ],
-      cta: 'Học mẹo Nghe Part 1',
-    },
-    {
-      id: 'lis-2',
-      title: 'Chiến thuật làm bài Hội thoại nhiều người nói (Part 2 & 3)',
-      summary: 'Cách theo dõi mạch hội thoại, xác định thái độ, cảm xúc và ý định ẩn của người nói.',
-      tips: [
-        'Xác định rõ câu hỏi đang hỏi về quan điểm của người nam hay người nữ.',
-        'Lắng nghe các từ chuyển hướng thảo luận: "However", "Actually", "To be honest".',
-        'Đánh dấu đáp án nháp ngay khi nghe được từ đồng nghĩa (paraphrase), không đợi hết bài.',
-      ],
-      cta: 'Học mẹo Nghe Part 2 & 3',
-    },
-  ],
-
-  speaking: [
-    {
-      id: 'spk-1',
-      title: 'Cấu trúc trả lời Phần Giới thiệu & Trải nghiệm cá nhân',
-      summary: 'Kỹ thuật mở rộng câu trả lời theo công thức A.R.E.A (Answer - Reason - Example - Alternative).',
-      tips: [
-        'Không trả lời cụt lủn Yes/No; luôn bổ sung ít nhất 2 câu giải thích lý do hoặc ví dụ.',
-        'Sử dụng các cụm liên kết tự nhiên: "Well, to be fair...", "I would say that...".',
-        'Giữ tốc độ nói vừa phải, phát âm rõ ràng nguyên âm và trọng âm từ.',
-      ],
-      cta: 'Học mẹo Nói Cá nhân',
-    },
-    {
-      id: 'spk-2',
-      title: 'Kỹ năng Miêu tả Tranh & So sánh 2 bức ảnh',
-      summary: 'Cách triển khai bài nói theo bố cục tổng quan đến chi tiết và suy đoán hoàn cảnh.',
-      tips: [
-        'Bắt đầu bằng một câu khái quát: "Both pictures show people engaging in...".',
-        'Dùng các cấu trúc suy đoán: "It seems to me that...", "They look like they are...".',
-        'So sánh điểm giống nhau trước, sau đó chỉ ra điểm tương phản rõ rệt nhất.',
-      ],
-      cta: 'Học mẹo Miêu tả & So sánh',
-    },
-  ],
-
-  reading: [
-    {
-      id: 'rdg-1',
-      title: 'Tuyệt chiêu xử lý dạng bài Nối Tiêu đề (Matching Headings)',
-      summary: 'Phương pháp đọc lướt câu chủ đề, phân biệt ý chính bao quát và các ví dụ minh họa.',
-      tips: [
-        'Đọc danh sách tiêu đề trước để gạch chân các từ khóa phân biệt giữa các tiêu đề.',
-        'Tập trung đọc 1-2 câu đầu và câu cuối của mỗi đoạn văn để bắt ý chính.',
-        'Nếu một tiêu đề chỉ chứa thông tin của 1 câu đơn lẻ -> Đó là bẫy chi tiết, không phải ý chính.',
-      ],
-      cta: 'Học mẹo Nối Tiêu đề',
-    },
-    {
-      id: 'rdg-2',
-      title: 'Bí quyết làm dạng bài Sắp xếp trật tự câu thành đoạn văn',
-      summary: 'Cách tìm câu mở đầu độc lập và dựa vào đại từ thay thế để liên kết logic.',
-      tips: [
-        'Tìm câu mở đầu: Thường là câu giới thiệu chủ đề, không chứa đại từ như "he", "it", "this".',
-        'Theo dõi các từ chỉ thời gian: "Initially", "Then", "Later", "Finally".',
-        'Chú ý mạo từ: Danh từ xuất hiện lần đầu dùng "a/an", nhắc lại lần sau dùng "the".',
-      ],
-      cta: 'Học mẹo Sắp xếp Đoạn văn',
-    },
-  ],
-
-  writing: [
-    {
-      id: 'wrt-1',
-      title: 'Kỹ thuật Viết Email Trang trọng & Thân mật (Formal / Informal)',
-      summary: 'Quy chuẩn lời chào, phân đoạn nội dung và cách kết thư chuẩn xác cho từng đối tượng.',
-      tips: [
-        'Email thân mật: Dùng từ ngữ tự nhiên, được phép viết tắt (I\'m, don\'t), chào "Hi [Name]".',
-        'Email trang trọng: Tuyệt đối không viết tắt, dùng cấu trúc bị động và từ vựng lịch sự.',
-        'Đảm bảo trả lời đầy đủ 100% các yêu cầu được nêu trong đề bài.',
-      ],
-      cta: 'Học mẹo Viết Email',
-    },
-    {
-      id: 'wrt-2',
-      title: 'Cấu trúc Viết Bài luận Nghị luận xã hội (Opinion / Discussion)',
-      summary: 'Dàn ý 4 đoạn chuẩn mực: Mở bài (Paraphrase + Thesis) - 2 Thân bài - Kết bài.',
-      tips: [
-        'Mở bài gồm đúng 2 câu: Câu 1 diễn đạt lại đề bài, Câu 2 nêu quan điểm cá nhân.',
-        'Mỗi đoạn thân bài chỉ tập trung vào 1 luận điểm chính kèm dẫn chứng hoặc ví dụ cụ thể.',
-        'Sử dụng các liên từ học thuật: "Furthermore", "In contrast", "Consequently".',
-      ],
-      cta: 'Học mẹo Viết Luận',
-    },
-  ],
-};
-
 const VocaLessonsPage = () => {
   const navigate = useNavigate();
   const [tab, setTab] = useState<TabKey>('listening');
+  const [typeFilter, setTypeFilter] = useState<string>('ALL');
   const [vocabSets, setVocabSets] = useState<StudySet[]>([]);
   const [grammarSets, setGrammarSets] = useState<GrammarSetDTO[]>([]);
+  const [studyTips, setStudyTips] = useState<StudyTipDTO[]>([]);
+  const [practiceExams, setPracticeExams] = useState<ExamDTO[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
-  // Tải dữ liệu thật từ CSDL backend cho từ vựng và ngữ pháp
+  // Tải dữ liệu thật từ CSDL backend cho từ vựng, ngữ pháp và mẹo học
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
         if (tab === 'vocab') {
           const sets = await studySetService.getAllStudySets();
-          setVocabSets(sets);
+          setVocabSets(sets || []);
         } else if (tab === 'grammar') {
           const gSets = await grammarService.getAllGrammarSets();
-          setGrammarSets(gSets);
+          setGrammarSets(gSets || []);
+        } else {
+          // Tải danh sách StudyTip và Exam từ backend
+          const [tips, exams] = await Promise.all([
+            studyTipService.getStudyTips(tab),
+            examService.getPracticeExams(),
+          ]);
+          setStudyTips(tips || []);
+          setPracticeExams(exams || []);
         }
       } catch (err) {
         console.error('Lỗi khi tải dữ liệu bài học:', err);
@@ -170,13 +79,51 @@ const VocaLessonsPage = () => {
       }
     };
 
-    if (tab === 'vocab' || tab === 'grammar') {
-      fetchData();
-    }
+    fetchData();
   }, [tab]);
 
+  // Lấy danh sách ExamType động từ bảng exam và study_tips
+  const availableTypes = useMemo(() => {
+    const types = new Set<string>();
+    practiceExams.forEach((e) => {
+      if (e.type) types.add(e.type);
+    });
+    studyTips.forEach((t) => {
+      if (t.examType) types.add(t.examType);
+    });
+    return Array.from(types);
+  }, [practiceExams, studyTips]);
+
   const isSet = tab === 'vocab' || tab === 'grammar';
-  const groups = isSet ? [] : lessonGroups[tab as SkillKey] || [];
+
+  const defaultExamId = practiceExams.length > 0 ? practiceExams[0].id : 1;
+
+  // Danh sách bài học mẹo 100% từ CSDL thật, không fake dữ liệu
+  const displayTips = useMemo(() => {
+    let list = studyTips;
+    if (typeFilter !== 'ALL') {
+      list = list.filter((t) => t.examType === typeFilter);
+    }
+
+    return list.map((tip) => {
+      const tipLines = (tip.tips && tip.tips.length > 0)
+        ? tip.tips
+        : (tip.content ? tip.content.split('\n').map(s => s.trim()).filter(Boolean) : []);
+
+      return {
+        id: `tip-${tip.id}`,
+        title: tip.title,
+        partName: tip.partName,
+        tips: tipLines,
+        cta: tip.cta || `Học mẹo ${tip.partName || 'ngay'}`,
+        examId: tip.examId || defaultExamId,
+        examType: tip.examType,
+      };
+    });
+  }, [studyTips, typeFilter, defaultExamId]);
+
+  const filteredVocabSets = vocabSets;
+  const filteredGrammarSets = grammarSets;
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans flex flex-col select-none pb-20">
@@ -225,7 +172,34 @@ const VocaLessonsPage = () => {
             ))}
           </div>
 
-          {/* 3. Hiển thị nội dung tương ứng */}
+          {/* 3. Khung Bộ Lọc Bài Học theo ExamType */}
+          <div className="surface-card space-y-3 p-5 rounded-3xl border border-border shadow-2xs">
+            <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+              <SlidersHorizontal className="h-4 w-4 text-primary" />
+              Bộ lọc loại đề thi
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <TabPill
+                active={typeFilter === 'ALL'}
+                onClick={() => setTypeFilter('ALL')}
+                className="h-9 px-3.5 text-xs font-semibold cursor-pointer"
+              >
+                Tất cả loại đề
+              </TabPill>
+              {availableTypes.map((t) => (
+                <TabPill
+                  key={t}
+                  active={typeFilter === t}
+                  onClick={() => setTypeFilter(t)}
+                  className="h-9 px-3.5 text-xs font-semibold cursor-pointer"
+                >
+                  {t}
+                </TabPill>
+              ))}
+            </div>
+          </div>
+
+          {/* 4. Hiển thị nội dung tương ứng */}
           {loading ? (
             <div className="surface-card p-16 rounded-3xl flex flex-col items-center justify-center gap-3 text-muted-foreground">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -237,12 +211,12 @@ const VocaLessonsPage = () => {
                 <>
                   <SectionTitle
                     title="Bộ từ vựng trong cơ sở dữ liệu"
-                    badge={`${vocabSets.length} bộ`}
+                    badge={`${filteredVocabSets.length} bộ`}
                   />
 
                   <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                    {vocabSets.map((s) => {
-                      const termsCount = s.vocabularies?.length || s.vocabulariesCount || 0;
+                    {filteredVocabSets.map((s) => {
+                      const termsCount = s.vocabularies?.length || 0;
                       return (
                         <article
                           key={s.id}
@@ -252,7 +226,7 @@ const VocaLessonsPage = () => {
                             <EmojiTile>📚</EmojiTile>
                             <div className="min-w-0 flex-1">
                               <h3 className="font-display text-base font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1">
-                                {s.titleName || s.title || `Bộ từ vựng #${s.id}`}
+                                {s.titleName || `Bộ từ vựng #${s.id}`}
                               </h3>
                               <p className="mt-1 text-xs text-muted-foreground line-clamp-2 leading-relaxed">
                                 {s.description || 'Bộ thẻ từ vựng ôn tập lặp lại ngắt quãng.'}
@@ -264,7 +238,7 @@ const VocaLessonsPage = () => {
                             <Pill tone="muted" className="text-[11px]">
                               <Layers className="h-3.5 w-3.5 text-primary" /> {termsCount} từ vựng
                             </Pill>
-                            <Pill tone="info" className="text-[11px]">{s.authorName || 'Hệ thống'}</Pill>
+                            <Pill tone="info" className="text-[11px]">Hệ thống</Pill>
                           </div>
 
                           <BtnPrimary
@@ -277,9 +251,9 @@ const VocaLessonsPage = () => {
                       );
                     })}
 
-                    {vocabSets.length === 0 && (
+                    {filteredVocabSets.length === 0 && (
                       <div className="surface-card col-span-full p-12 text-center text-sm text-muted-foreground rounded-3xl">
-                        Chưa có bộ từ vựng nào trong cơ sở dữ liệu.
+                        Không tìm thấy bộ từ vựng nào trong hệ thống.
                       </div>
                     )}
                   </div>
@@ -288,11 +262,11 @@ const VocaLessonsPage = () => {
                 <>
                   <SectionTitle
                     title="Bộ ngữ pháp trong cơ sở dữ liệu"
-                    badge={`${grammarSets.length} bộ`}
+                    badge={`${filteredGrammarSets.length} bộ`}
                   />
 
                   <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                    {grammarSets.map((s) => (
+                    {filteredGrammarSets.map((s) => (
                       <article
                         key={s.id}
                         className="surface-card flex flex-col gap-3.5 p-6 rounded-3xl border border-border hover:border-primary/40 hover:shadow-xs transition group"
@@ -325,9 +299,9 @@ const VocaLessonsPage = () => {
                       </article>
                     ))}
 
-                    {grammarSets.length === 0 && (
+                    {filteredGrammarSets.length === 0 && (
                       <div className="surface-card col-span-full p-12 text-center text-sm text-muted-foreground rounded-3xl">
-                        Chưa có bộ ngữ pháp nào trong cơ sở dữ liệu.
+                        Không tìm thấy bộ ngữ pháp nào trong hệ thống.
                       </div>
                     )}
                   </div>
@@ -338,45 +312,62 @@ const VocaLessonsPage = () => {
             <div className="space-y-4">
               <SectionTitle
                 title={`Danh sách bài học mẹo ${tabs.find((t) => t.id === tab)?.name}`}
-                badge={`${groups.length} nhóm`}
+                badge={`${displayTips.length} bài học`}
               />
 
               <div className="grid gap-6 xl:grid-cols-2">
-                {groups.map((g) => (
+                {displayTips.map((g) => (
                   <article
                     key={g.id}
-                    className="overflow-hidden rounded-3xl border border-border bg-card shadow-2xs flex flex-col"
+                    className="overflow-hidden rounded-3xl border border-border bg-card shadow-2xs flex flex-col hover:border-primary/30 transition group"
                   >
                     <div className="bg-primary px-6 py-5 text-primary-foreground">
-                      <h3 className="font-display text-lg font-bold">{g.title}</h3>
-                      <p className="mt-2 text-xs leading-relaxed text-primary-foreground/85 font-normal">
-                        {g.summary}
-                      </p>
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        {g.partName && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/20 text-white backdrop-blur-xs">
+                            {g.partName}
+                          </span>
+                        )}
+                        {g.examType && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-400 text-slate-900 shadow-xs ml-auto">
+                            {g.examType}
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="font-display text-lg font-bold leading-snug">{g.title}</h3>
                     </div>
 
                     <div className="space-y-3 p-6 flex-1 flex flex-col justify-between bg-muted/20">
                       <div className="space-y-2.5">
-                        {g.tips.map((tip) => (
+                        {g.tips.map((tip, tIdx) => (
                           <div
-                            key={tip}
-                            className="flex items-start gap-3 rounded-2xl bg-card border border-border/50 px-4 py-3.5 text-xs font-semibold text-foreground shadow-2xs"
+                            key={tIdx}
+                            className="flex items-start gap-3 rounded-2xl bg-card border border-border/50 px-4 py-3.5 text-xs font-semibold text-foreground shadow-2xs leading-relaxed"
                           >
                             <CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-emerald-600" />
-                            <span className="leading-relaxed">{tip}</span>
+                            <span>{tip}</span>
                           </div>
                         ))}
                       </div>
 
                       <div className="pt-3">
-                        <Link to="/exams">
-                          <BtnOutline className="h-11 w-full !border-primary !text-primary hover:!bg-primary/10 flex items-center justify-center gap-2 text-xs font-bold rounded-2xl cursor-pointer">
-                            <BookOpenText className="h-4 w-4" /> {g.cta}
-                          </BtnOutline>
-                        </Link>
+                        {/* Khi bấm vào nút học mẹo -> mở phòng làm bài không tính thời gian */}
+                        <BtnOutline
+                          onClick={() => navigate(`/exams/${g.examId}/practice?mode=lesson&unlimited=true`)}
+                          className="h-11 w-full !border-primary !text-primary hover:!bg-primary hover:!text-primary-foreground flex items-center justify-center gap-2 text-xs font-bold rounded-2xl cursor-pointer transition-colors shadow-2xs"
+                        >
+                          <BookOpenText className="h-4 w-4" /> {g.cta}
+                        </BtnOutline>
                       </div>
                     </div>
                   </article>
                 ))}
+
+                {displayTips.length === 0 && (
+                  <div className="surface-card col-span-full p-12 text-center text-sm text-muted-foreground rounded-3xl">
+                    Chưa có bài học mẹo nào trong cơ sở dữ liệu.
+                  </div>
+                )}
               </div>
             </div>
           )}

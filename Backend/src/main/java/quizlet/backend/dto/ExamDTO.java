@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import quizlet.backend.enums.ExamFormat;
 import quizlet.backend.enums.ExamType;
 import quizlet.backend.enums.SkillType;
 
@@ -20,6 +21,7 @@ public class ExamDTO {
     private Integer totalMinutes;
     private Integer totalScore;
     private ExamType type;
+    private ExamFormat format;
     private SkillType primarySkill; // Dùng cho PRACTICE exam
     private Integer sectionCount;
     private Integer totalQuestions;

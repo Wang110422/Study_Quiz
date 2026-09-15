@@ -1,4 +1,6 @@
 package quizlet.backend.enums;
 
-public enum TestType {
+public enum ExamFormat {
+    FULL_TEST,
+    PRACTICE
 }

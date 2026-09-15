@@ -3,6 +3,7 @@ package quizlet.backend.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import quizlet.backend.dto.res.APIResponse;
@@ -19,6 +20,7 @@ public class StudySetController {
     private StudySetService studySetService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<List<StudySetDTO>>> getAllStudySets() {
         List<StudySetDTO> studySets = studySetService.getAllStudySets();
 
@@ -30,11 +32,13 @@ public class StudySetController {
     }
 
     @GetMapping("/all")
+    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<List<StudySetDTO>>> getAllStudySetsEndpoint() {
         return getAllStudySets();
     }
 
     @GetMapping("/user")
+    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<List<StudySetDTO>>> getStudySetsByUser(@AuthenticationPrincipal User user) {
         APIResponse<List<StudySetDTO>> response = new APIResponse<>();
         if (user == null) {
@@ -50,6 +54,7 @@ public class StudySetController {
     }
 
     @GetMapping("/folder/{folderId}")
+    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<List<StudySetDTO>>> getStudySetsByFolderId(@PathVariable Long folderId) {
         List<StudySetDTO> studySets = studySetService.getAllByFolderId(folderId);
 
@@ -61,6 +66,7 @@ public class StudySetController {
     }
 
     @GetMapping("/folder-name/{folderName}")
+    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<List<StudySetDTO>>> getStudySetsByFolderName(@PathVariable String folderName) {
         List<StudySetDTO> studySets = studySetService.getAllByFolderName(folderName);
 
@@ -72,6 +78,7 @@ public class StudySetController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<StudySetDTO>> createStudySet(@AuthenticationPrincipal User user, @RequestBody StudySetDTO studySetDTO) {
         if (user == null) {
             APIResponse<StudySetDTO> response = new APIResponse<>();
@@ -90,6 +97,7 @@ public class StudySetController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<Boolean>> deleteStudySet(@PathVariable Long id) {
         boolean deleted = studySetService.softDeleteStudySet(id);
         APIResponse<Boolean> response = new APIResponse<>();
@@ -99,3 +107,4 @@ public class StudySetController {
         return ResponseEntity.ok(response);
     }
 }
+

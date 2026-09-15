@@ -8,22 +8,23 @@ const OAuth2RedirectHandler = () => {
     const { fetchUser } = useAuthStore();
 
     useEffect(() => {
-        const token = searchParams.get('token');
         const error = searchParams.get('error');
 
-        if (token) {
-            localStorage.setItem('auth_token', token);
-            localStorage.setItem('token', token);
-            document.cookie = `auth_token=${token}; path=/; max-age=864000; SameSite=Lax`;
-            fetchUser().then(() => {
-                navigate('/dashboard', { replace: true });
-            });
-        } else if (error) {
+        if (error) {
             console.error("OAuth2 Error:", error);
             navigate('/login?error=' + encodeURIComponent(error), { replace: true });
-        } else {
-            navigate('/login', { replace: true });
+            return;
         }
+
+        // Cookie auth_token đã được Backend tự động set qua response header Set-Cookie
+        // Frontend chỉ cần fetchUser để lấy thông tin tài khoản và điều hướng
+        fetchUser().then((user) => {
+            if (user) {
+                navigate('/dashboard', { replace: true });
+            } else {
+                navigate('/login?error=auth_failed', { replace: true });
+            }
+        });
     }, [searchParams, navigate, fetchUser]);
 
     return (

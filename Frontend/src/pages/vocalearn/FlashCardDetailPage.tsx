@@ -26,7 +26,7 @@ import {
 } from "@/components/app/ui-bits";
 import { SectionTitle } from "@/components/app/PageHeader";
 import { useVocal } from "@/hooks/useVocal";
-import { fetchDbItemProgress, type PathItemProgress } from "@/utils/pathProgress";
+import { fetchDbItemProgress, updateDbLearnProgress, type PathItemProgress } from "@/utils/pathProgress";
 
 interface SetMetaInfo {
   title: string;
@@ -113,13 +113,13 @@ const FlashCardDetailPage = () => {
   const [starredTerms, setStarredTerms] = useState<Set<string | number>>(new Set());
 
   const setMeta = (slug && studySetTitlesMap[slug]) || defaultSetInfo;
-  const pathItemId = location.state?.pathItemId;
+  const pathItemId = location.state?.pathItemId || location.state?.taskId;
 
   const [dbProgress, setDbProgress] = useState<PathItemProgress>({
     completedLearnCount: 0,
     completedTestCount: 0,
-    targetLearnCount: location.state?.targetLearnCount || 3,
-    targetTestCount: location.state?.targetTestCount || 3,
+    targetLearnCount: location.state?.targetLearnCount || 1,
+    targetTestCount: location.state?.targetTestCount || 1,
     isCompleted: false,
   });
 
@@ -241,6 +241,36 @@ const FlashCardDetailPage = () => {
               </div>
             </div>
 
+            {/* Banner Lộ Trình Học nếu đang học theo nhiệm vụ lộ trình */}
+            {pathItemId && (
+              <div className="surface-card p-4 rounded-3xl border border-blue-200 bg-blue-50/70 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">🎯</span>
+                  <div>
+                    <span className="text-xs font-bold text-blue-900 block">
+                      Bạn đang thực hiện nhiệm vụ Lộ trình học
+                    </span>
+                    <span className="text-xs text-blue-600">
+                      {dbProgress.isCompleted
+                        ? '✓ Bạn đã hoàn thành nhiệm vụ này trong lộ trình!'
+                        : 'Lật thẻ và học các từ vựng này, sau đó bấm nút hoàn thành để mở khóa bước tiếp theo.'}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await updateDbLearnProgress(pathItemId);
+                    alert('✓ Đã cập nhật hoàn thành nhiệm vụ! Chuyển về lộ trình học...');
+                    navigate('/paths');
+                  }}
+                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-2xl shadow-xs cursor-pointer shrink-0 transition"
+                >
+                  ✓ Đã học xong & Cập nhật lộ trình
+                </button>
+              </div>
+            )}
+
             {/* 3. Card Tiến Độ Bộ Thẻ */}
             <section className="surface-card p-5 rounded-3xl border border-border shadow-2xs">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -275,8 +305,8 @@ const FlashCardDetailPage = () => {
                       navigate(`${basePath}${m.pathSuffix}`, { state: { ...location.state, pathItemId } });
                     }}
                     className={`surface-card flex items-center gap-3 p-4 text-left rounded-3xl border transition cursor-pointer select-none ${active
-                        ? "border-primary ring-2 ring-primary/25 bg-card shadow-xs"
-                        : "border-border hover:border-primary/40"
+                      ? "border-primary ring-2 ring-primary/25 bg-card shadow-xs"
+                      : "border-border hover:border-primary/40"
                       }`}
                   >
                     <span className="flex h-10 w-10 flex-none items-center justify-center rounded-2xl bg-primary-soft text-primary shadow-2xs">
@@ -354,8 +384,8 @@ const FlashCardDetailPage = () => {
                     aria-label="Lưu từ"
                     onClick={() => toggleStar(card.id || card.word)}
                     className={`flex h-10 w-10 items-center justify-center rounded-full border border-border transition cursor-pointer shadow-2xs ${isCardStarred
-                        ? "text-warning bg-warning-soft border-warning/40"
-                        : "text-muted-foreground hover:bg-warning-soft hover:text-warning"
+                      ? "text-warning bg-warning-soft border-warning/40"
+                      : "text-muted-foreground hover:bg-warning-soft hover:text-warning"
                       }`}
                     title={isCardStarred ? "Bỏ lưu từ" : "Lưu từ yêu thích"}
                   >

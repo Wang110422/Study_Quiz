@@ -5,7 +5,13 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+
+import java.util.Collection;
 import java.util.List;
+
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 import quizlet.backend.enums.Role;
 import quizlet.backend.enums.ThemePreference;
 import quizlet.backend.enums.LanguagePreference;
@@ -13,7 +19,7 @@ import quizlet.backend.enums.LanguagePreference;
 @Entity
 @Data
 @Table(name = "user")
-public class User {
+public class User implements UserDetails{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -64,4 +70,13 @@ public class User {
     @Column
     private String reminderTime = "20:00";
 
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of(new SimpleGrantedAuthority(role.name()));
+    }
+
+    @Override
+    public String getUsername() {
+        return this.email;
+    }
 }

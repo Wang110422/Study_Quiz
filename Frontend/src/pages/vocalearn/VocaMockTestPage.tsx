@@ -10,6 +10,7 @@ import {
   ArrowRight,
   Loader2,
   CheckCircle,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import VocaHeader from '@/components/vocalearn/layout/VocaHeader';
@@ -21,12 +22,14 @@ import {
   Pill,
   BtnPrimary,
   BtnOutline,
+  TabPill,
 } from '@/components/app/ui-bits';
 import examService, { type ExamDTO, type ExamAttemptDTO } from '@/services/examService';
 
 const VocaMockTestPage = () => {
   const navigate = useNavigate();
   const [exams, setExams] = useState<ExamDTO[]>([]);
+  const [typeFilter, setTypeFilter] = useState<string>('ALL');
   const [attempts, setAttempts] = useState<ExamAttemptDTO[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedExamId, setSelectedExamId] = useState<number | null>(null);
@@ -53,6 +56,15 @@ const VocaMockTestPage = () => {
     fetchData();
   }, []);
 
+  // Lấy danh sách ExamType động từ bảng exam
+  const availableTypes = useMemo(() => {
+    const types = new Set<string>();
+    exams.forEach((e) => {
+      if (e.type) types.add(e.type);
+    });
+    return Array.from(types);
+  }, [exams]);
+
   const handleStartExam = async (examId: number) => {
     try {
       const attempt = await examService.startAttempt(examId, 'REAL_TEST');
@@ -64,11 +76,19 @@ const VocaMockTestPage = () => {
     }
   };
 
+  // Lọc danh sách đề thi chính xác theo cột type (ExamType) của bảng exam
+  const filteredExams = useMemo(() => {
+    return exams.filter((e) => {
+      if (typeFilter === 'ALL') return true;
+      return e.type === typeFilter;
+    });
+  }, [exams, typeFilter]);
+
   // Đề thi đang được chọn
   const selectedExam = useMemo(() => {
-    if (!selectedExamId) return exams[0] || null;
-    return exams.find((e) => e.id === selectedExamId) || exams[0] || null;
-  }, [exams, selectedExamId]);
+    if (!selectedExamId) return filteredExams[0] || null;
+    return filteredExams.find((e) => e.id === selectedExamId) || filteredExams[0] || null;
+  }, [filteredExams, selectedExamId]);
 
   // Lọc 3 kết quả thi gần nhất của chính đề thi đang được chọn
   const examAttempts = useMemo(() => {
@@ -170,11 +190,38 @@ const VocaMockTestPage = () => {
             </BtnOutline>
           </div>
 
-          {/* 3. Grid 2 cột: Danh sách đề thi thử & Điểm kỹ năng / Kết quả */}
+          {/* 3. Khung Bộ Lọc Phòng Thi Thử */}
+          <div className="surface-card space-y-3 p-5 rounded-3xl border border-border shadow-2xs">
+            <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+              <SlidersHorizontal className="h-4 w-4 text-primary" />
+              Bộ lọc phòng thi
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <TabPill
+                active={typeFilter === 'ALL'}
+                onClick={() => setTypeFilter('ALL')}
+                className="h-9 px-3.5 text-xs font-semibold cursor-pointer"
+              >
+                Tất cả phòng thi
+              </TabPill>
+              {availableTypes.map((t) => (
+                <TabPill
+                  key={t}
+                  active={typeFilter === t}
+                  onClick={() => setTypeFilter(t)}
+                  className="h-9 px-3.5 text-xs font-semibold cursor-pointer"
+                >
+                  {t}
+                </TabPill>
+              ))}
+            </div>
+          </div>
+
+          {/* 4. Grid 2 cột: Danh sách đề thi thử & Điểm kỹ năng / Kết quả */}
           <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
             {/* Cột Trái: Chọn đề thi thử từ CSDL */}
             <section className="space-y-4">
-              <SectionTitle icon={Play} title="Chọn đề để thi thử" badge={`${exams.length} đề`} />
+              <SectionTitle icon={Play} title="Chọn đề để thi thử" badge={`${filteredExams.length} đề`} />
 
               {loading ? (
                 <div className="surface-card p-16 rounded-3xl flex flex-col items-center justify-center gap-3 text-muted-foreground">
@@ -183,7 +230,7 @@ const VocaMockTestPage = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {exams.map((e) => {
+                  {filteredExams.map((e) => {
                     const secCount = e.sectionCount || (e.sections ? e.sections.length : 2);
                     const isSelected = selectedExam?.id === e.id;
 
@@ -241,9 +288,9 @@ const VocaMockTestPage = () => {
                     );
                   })}
 
-                  {exams.length === 0 && (
+                  {filteredExams.length === 0 && (
                     <div className="surface-card p-12 text-center text-sm text-muted-foreground rounded-3xl">
-                      Chưa có bộ đề thi thử nào trong cơ sở dữ liệu.
+                      Không tìm thấy đề thi thử nào phù hợp với bộ lọc.
                     </div>
                   )}
                 </div>

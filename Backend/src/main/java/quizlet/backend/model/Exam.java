@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+import quizlet.backend.enums.ExamFormat;
 import quizlet.backend.enums.ExamType;
 
 import java.time.LocalDateTime;
@@ -30,7 +31,12 @@ public class Exam {
     private LocalDateTime createdAt = LocalDateTime.now();
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "type", length = 50, columnDefinition = "VARCHAR(50)")
     private ExamType type;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "format", length = 50, columnDefinition = "VARCHAR(50)")
+    private ExamFormat format;
 
     @OneToMany(mappedBy = "exam", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude

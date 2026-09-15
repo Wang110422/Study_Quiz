@@ -8,14 +8,15 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.UUID;
 
 @Component
 public class JwtTokenProvider {
 
-    @Value("${app.jwt.secret:QuizletBackendSecretKeyForJWTSigningRequirementMinimum256BitsLong123456}")
+    @Value("${app.jwt.secret}")
     private String jwtSecret;
 
-    @Value("${app.jwt.expiration-ms:86400000}")
+    @Value("${app.jwt.expiration-ms}")
     private long jwtExpirationMs;
 
     private SecretKey getSigningKey() {
@@ -25,8 +26,9 @@ public class JwtTokenProvider {
     public String generateToken(Long userId, String email) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
-
+        String jti = UUID.randomUUID().toString();
         return Jwts.builder()
+                .id(jti)
                 .subject(email)
                 .claim("userId", userId)
                 .issuedAt(now)
@@ -52,6 +54,33 @@ public class JwtTokenProvider {
                 .getPayload();
         Number userId = claims.get("userId", Number.class);
         return userId != null ? userId.longValue() : null;
+    }
+
+    public String getJtiFromToken(String token) {
+        Claims claims = Jwts.parser()
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+        return claims.getId();
+    }
+
+    public Date getExpirationFromToken(String token) {
+        Claims claims = Jwts.parser()
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+        return claims.getExpiration();
+    }
+
+    public Date getIssuedAtFromToken(String token) {
+        Claims claims = Jwts.parser()
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+        return claims.getIssuedAt();
     }
 
     public boolean validateToken(String token) {

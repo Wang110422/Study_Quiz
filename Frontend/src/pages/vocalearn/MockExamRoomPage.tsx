@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom';
 import {
   LogOut,
   Volume2,
@@ -31,6 +31,7 @@ import examService, {
   type PassageGroupDTO,
   type QuestionDTO,
 } from '@/services/examService';
+import roadmapService from '@/services/roadmapService';
 
 const getMediaAudioUrl = (audioUrl?: string | null): string => {
   if (!audioUrl) return '';
@@ -265,6 +266,7 @@ const MockExamRoomPage = () => {
   const { examId } = useParams<{ examId: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [exam, setExam] = useState<ExamDTO | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -432,6 +434,20 @@ const MockExamRoomPage = () => {
             totalQuestions: detailObj?.totalQuestions || allFlatQuestions.length,
             totalTime: elapsedSeconds,
           });
+
+          // Cập nhật tiến trình lộ trình nếu làm bài từ lộ trình
+          const taskId = location.state?.taskId || location.state?.pathItemId || searchParams.get('taskId');
+          if (taskId) {
+            try {
+              await roadmapService.updateTaskProgress(Number(taskId), {
+                score: score,
+                isCompleted: true,
+                mode: 'COMPLETE',
+              });
+            } catch (err) {
+              console.error('Lỗi khi cập nhật tiến độ lộ trình:', err);
+            }
+          }
         }
       } catch (err) {
         console.error('Lỗi khi nộp bài thi:', err);
@@ -634,11 +650,19 @@ const MockExamRoomPage = () => {
               >
                 <RotateCcw className="w-4 h-4" /> Làm lại bài thi
               </button>
-              <Link to="/mock-test">
-                <button className="px-6 py-2.5 rounded-2xl bg-[#1F0038] text-white font-bold text-xs hover:opacity-90 transition cursor-pointer">
-                  Quay về trang danh sách đề
-                </button>
-              </Link>
+              {location.state?.taskId || searchParams.get('taskId') ? (
+                <Link to="/paths">
+                  <button className="px-6 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition cursor-pointer shadow-md">
+                    Quay lại Lộ trình học (Đã hoàn thành)
+                  </button>
+                </Link>
+              ) : (
+                <Link to="/mock-test">
+                  <button className="px-6 py-2.5 rounded-2xl bg-[#1F0038] text-white font-bold text-xs hover:opacity-90 transition cursor-pointer">
+                    Quay về trang danh sách đề
+                  </button>
+                </Link>
+              )}
             </div>
           </div>
         </main>

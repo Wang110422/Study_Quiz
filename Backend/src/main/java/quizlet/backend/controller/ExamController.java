@@ -3,11 +3,13 @@ package quizlet.backend.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import quizlet.backend.dto.res.APIResponse;
 import quizlet.backend.dto.ExamAttemptDTO;
 import quizlet.backend.dto.ExamDTO;
+import quizlet.backend.enums.ExamFormat;
 import quizlet.backend.enums.ExamType;
 import quizlet.backend.enums.Mode;
 import quizlet.backend.model.User;
@@ -24,8 +26,11 @@ public class ExamController {
     private ExamService examService;
 
     @GetMapping
-    public ResponseEntity<APIResponse<List<ExamDTO>>> getExams(@RequestParam(required = false) ExamType type) {
-        List<ExamDTO> list = examService.getExamsByType(type);
+    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN')")
+    public ResponseEntity<APIResponse<List<ExamDTO>>> getExams(
+            @RequestParam(required = false) ExamFormat format,
+            @RequestParam(required = false) ExamType type) {
+        List<ExamDTO> list = examService.getExams(format, type);
         APIResponse<List<ExamDTO>> response = new APIResponse<>();
         response.setStatus(HttpStatus.OK.value());
         response.setMessage("Success");
@@ -34,16 +39,19 @@ public class ExamController {
     }
 
     @GetMapping("/practice")
-    public ResponseEntity<APIResponse<List<ExamDTO>>> getPracticeExams() {
-        return getExams(ExamType.PRACTICE);
+    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN')")
+    public ResponseEntity<APIResponse<List<ExamDTO>>> getPracticeExams(@RequestParam(required = false) ExamType type) {
+        return getExams(ExamFormat.PRACTICE, type);
     }
 
     @GetMapping("/mock")
-    public ResponseEntity<APIResponse<List<ExamDTO>>> getMockExams() {
-        return getExams(ExamType.FULL_TEST);
+    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN')")
+    public ResponseEntity<APIResponse<List<ExamDTO>>> getMockExams(@RequestParam(required = false) ExamType type) {
+        return getExams(ExamFormat.FULL_TEST, type);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<ExamDTO>> getExamDetail(@PathVariable Long id) {
         ExamDTO exam = examService.getExamById(id);
         APIResponse<ExamDTO> response = new APIResponse<>();
@@ -64,6 +72,7 @@ public class ExamController {
 
     // 1.1 POST /api/exams - Tạo Exam mới (hoặc import cả cây Section/PassageGroup/Question)
     @PostMapping
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<ExamDTO>> createExam(@RequestBody ExamDTO dto) {
         ExamDTO result = examService.createExam(dto);
         APIResponse<ExamDTO> response = new APIResponse<>();
@@ -75,6 +84,7 @@ public class ExamController {
 
     // 1.2 POST /api/exams/sections - Tạo Section mới
     @PostMapping("/sections")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<quizlet.backend.dto.SectionDTO>> createSection(@RequestBody quizlet.backend.dto.SectionDTO dto) {
         quizlet.backend.dto.SectionDTO result = examService.createSection(dto);
         APIResponse<quizlet.backend.dto.SectionDTO> response = new APIResponse<>();
@@ -86,6 +96,7 @@ public class ExamController {
 
     // 1.3 POST /api/exams/{examId}/sections - Tạo Section cho một Exam cụ thể
     @PostMapping("/{examId}/sections")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<quizlet.backend.dto.SectionDTO>> createSectionForExam(
             @PathVariable Long examId,
             @RequestBody quizlet.backend.dto.SectionDTO dto
@@ -101,6 +112,7 @@ public class ExamController {
 
     // 1.4 POST /api/exams/passage-groups - Tạo PassageGroup mới
     @PostMapping("/passage-groups")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<quizlet.backend.dto.PassageGroupDTO>> createPassageGroup(@RequestBody quizlet.backend.dto.PassageGroupDTO dto) {
         quizlet.backend.dto.PassageGroupDTO result = examService.createPassageGroup(dto);
         APIResponse<quizlet.backend.dto.PassageGroupDTO> response = new APIResponse<>();
@@ -112,6 +124,7 @@ public class ExamController {
 
     // 1.5 POST /api/exams/sections/{sectionId}/passage-groups - Tạo PassageGroup cho một Section cụ thể
     @PostMapping("/sections/{sectionId}/passage-groups")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<quizlet.backend.dto.PassageGroupDTO>> createPassageGroupForSection(
             @PathVariable Integer sectionId,
             @RequestBody quizlet.backend.dto.PassageGroupDTO dto
@@ -127,6 +140,7 @@ public class ExamController {
 
     // 1.6 POST /api/exams/questions - Tạo Question mới
     @PostMapping("/questions")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<quizlet.backend.dto.QuestionDTO>> createQuestion(@RequestBody quizlet.backend.dto.QuestionDTO dto) {
         quizlet.backend.dto.QuestionDTO result = examService.createQuestion(dto);
         APIResponse<quizlet.backend.dto.QuestionDTO> response = new APIResponse<>();
@@ -138,6 +152,7 @@ public class ExamController {
 
     // 1.7 POST /api/exams/passage-groups/{groupId}/questions - Tạo Question cho một PassageGroup cụ thể
     @PostMapping("/passage-groups/{groupId}/questions")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<quizlet.backend.dto.QuestionDTO>> createQuestionForGroup(
             @PathVariable Long groupId,
             @RequestBody quizlet.backend.dto.QuestionDTO dto
@@ -153,6 +168,7 @@ public class ExamController {
 
     // 1.8 POST /api/exams/questions/bulk - Tạo danh sách câu hỏi hàng loạt
     @PostMapping("/questions/bulk")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<List<quizlet.backend.dto.QuestionDTO>>> createQuestionsBulk(@RequestBody List<quizlet.backend.dto.QuestionDTO> dtos) {
         List<quizlet.backend.dto.QuestionDTO> result = examService.createQuestionsBulk(dtos);
         APIResponse<List<quizlet.backend.dto.QuestionDTO>> response = new APIResponse<>();
@@ -167,6 +183,7 @@ public class ExamController {
     // =========================================================================
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<Void>> deleteExam(@PathVariable Long id) {
         examService.deleteExam(id);
         APIResponse<Void> response = new APIResponse<>();
@@ -176,6 +193,7 @@ public class ExamController {
     }
 
     @DeleteMapping("/sections/{id}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<Void>> deleteSection(@PathVariable Integer id) {
         examService.deleteSection(id);
         APIResponse<Void> response = new APIResponse<>();
@@ -185,6 +203,7 @@ public class ExamController {
     }
 
     @DeleteMapping("/passage-groups/{id}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<Void>> deletePassageGroup(@PathVariable Long id) {
         examService.deletePassageGroup(id);
         APIResponse<Void> response = new APIResponse<>();
@@ -194,6 +213,7 @@ public class ExamController {
     }
 
     @DeleteMapping("/questions/{id}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<Void>> deleteQuestion(@PathVariable Long id) {
         examService.deleteQuestion(id);
         APIResponse<Void> response = new APIResponse<>();
@@ -202,6 +222,7 @@ public class ExamController {
         return ResponseEntity.ok(response);
     }
     @PostMapping("/{id}/attempt")
+    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<ExamAttemptDTO>> startAttempt(
             @PathVariable Long id,
             @RequestParam(defaultValue = "REAL_TEST") Mode mode,
@@ -225,6 +246,7 @@ public class ExamController {
     }
 
     @PostMapping("/attempt/{attemptId}/submit")
+    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<ExamAttemptDTO>> submitAttempt(
             @PathVariable Long attemptId,
             @RequestBody Map<String, Object> body
@@ -250,6 +272,7 @@ public class ExamController {
     }
 
     @GetMapping("/attempts/me")
+    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<List<ExamAttemptDTO>>> getMyAttempts(@AuthenticationPrincipal User user) {
         Long userId = (user != null) ? user.getId() : null;
         List<ExamAttemptDTO> list = examService.getUserAttempts(userId);

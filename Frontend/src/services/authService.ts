@@ -30,30 +30,21 @@ export interface UserProfile {
 const AuthService = {
     login: async (credentials: LoginRequest) => {
         const response = await api.post('/auth/login', credentials);
-        if (response.data?.result?.token) {
-            const token = response.data.result.token;
-            localStorage.setItem('auth_token', token);
-            localStorage.setItem('token', token);
-            document.cookie = `auth_token=${token}; path=/; max-age=864000; SameSite=Lax`;
-        }
         return response.data;
     },
 
     register: async (userData: RegisterRequest) => {
         const response = await api.post('/auth/register', userData);
-        if (response.data?.result?.token) {
-            const token = response.data.result.token;
-            localStorage.setItem('auth_token', token);
-            localStorage.setItem('token', token);
-            document.cookie = `auth_token=${token}; path=/; max-age=864000; SameSite=Lax`;
-        }
+        return response.data;
+    },
+
+    refreshToken: async () => {
+        const response = await api.post('/auth/refresh-token');
         return response.data;
     },
 
     getCurrentUser: async (): Promise<UserProfile | null> => {
         try {
-            const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
-            if (!token) return null;
             const response = await api.get('/user/me');
             return response.data?.result || null;
         } catch {
@@ -69,21 +60,12 @@ const AuthService = {
     logout: async () => {
         try {
             await api.post('/auth/logout');
-        } catch (e) { }
-
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('token');
-
-        // Clear auth cookies
-        document.cookie = 'auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-        document.cookie = 'JSESSIONID=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-
-        window.location.href = '/login';
+        } catch (e) {
+            console.error('Lỗi khi đăng xuất:', e);
+        } finally {
+            window.location.href = '/login';
+        }
     },
-
-    getToken: () => {
-        return localStorage.getItem('auth_token') || localStorage.getItem('token');
-    }
 };
 
 export default AuthService;

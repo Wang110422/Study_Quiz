@@ -1,7 +1,10 @@
-package quizlet.backend.enums;
+package quizlet.backend.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+import quizlet.backend.enums.TaskType;
 
 @Data
 @Entity
@@ -18,5 +21,12 @@ public class PhaseTask {
 
     private Long targetId; // id của từng nhóm từ vựng , từng bài thi liên kết với
 
-    private Integer orderIndex; // thus tự 
+    private Integer orderIndex; // thus tự
+
+    @ManyToOne
+    @JoinColumn(name = "roadmap_phase_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private RoadmapPhase roadmapPhase;
+
 }

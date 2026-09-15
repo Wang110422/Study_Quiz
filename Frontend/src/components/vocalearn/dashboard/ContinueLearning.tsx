@@ -1,20 +1,13 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { Play, Loader2, Compass } from 'lucide-react';
-import useStudyPaths from '../../../hooks/useStudyPaths';
+import useRoadmaps from '../../../hooks/useRoadmaps';
 
 const ContinueLearning = () => {
-    const { paths, loading } = useStudyPaths();
+    const { roadmaps, loading } = useRoadmaps();
     const navigate = useNavigate();
 
-    // Lọc ra các lộ trình HỌC CHƯA HOÀN THÀNH từ Database (chỉ lấy các lộ trình có mốc chưa xong)
-    const uncompletedPaths = paths.filter((path) => {
-        const items = path.items || [];
-        if (items.length === 0) return true; // Chưa có mốc nào cũng coi là chưa hoàn thành
-        const completedCount = items.filter(
-            (it) => it.isCompleted || (it.completedLearnCount >= it.targetLearnCount && it.completedTestCount >= it.targetTestCount)
-        ).length;
-        return completedCount < items.length;
-    });
+    // Lọc ra các lộ trình CHƯA HOÀN THÀNH từ Database
+    const uncompletedRoadmaps = roadmaps.filter((r) => !r.isCompleted);
 
     return (
         <div className="mt-7 select-none">
@@ -24,9 +17,9 @@ const ContinueLearning = () => {
                     <h2 className="text-base font-bold text-slate-900">
                         Tiếp tục học (Lộ trình chưa hoàn thành)
                     </h2>
-                    {uncompletedPaths.length > 0 && (
+                    {uncompletedRoadmaps.length > 0 && (
                         <span className="px-2 py-0.5 bg-blue-100 text-blue-700 font-extrabold text-[11px] rounded-full">
-                            {uncompletedPaths.length} lộ trình
+                            {uncompletedRoadmaps.length} lộ trình
                         </span>
                     )}
                 </div>
@@ -39,9 +32,9 @@ const ContinueLearning = () => {
             {loading ? (
                 <div className="bg-white border border-slate-200 rounded-2xl p-8 flex items-center justify-center gap-2 text-xs font-semibold text-slate-400">
                     <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-                    <span>Đang tải lộ trình học cá nhân từ Database...</span>
+                    <span>Đang tải lộ trình học từ Database...</span>
                 </div>
-            ) : uncompletedPaths.length === 0 ? (
+            ) : uncompletedRoadmaps.length === 0 ? (
                 /* Empty state: Nếu không có lộ trình nào chưa hoàn thành */
                 <div className="bg-white border border-slate-200/80 rounded-2xl p-6 text-center space-y-3 shadow-2xs">
                     <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto text-xl font-bold">
@@ -51,7 +44,7 @@ const ContinueLearning = () => {
                         Bạn chưa có lộ trình dở dang nào!
                     </h3>
                     <p className="text-xs text-slate-400 max-w-md mx-auto">
-                        Tất cả các mốc lộ trình học trong cơ sở dữ liệu của bạn đều đã hoàn thành xuất sắc.
+                        Tất cả các chặng và tác vụ trong lộ trình của bạn đều đã hoàn thành xuất sắc hoặc chưa có lộ trình.
                     </p>
                     <Link
                         to="/paths"
@@ -64,26 +57,21 @@ const ContinueLearning = () => {
             ) : (
                 /* Grid hiển thị các lộ trình chưa hoàn thành */
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {uncompletedPaths.map((path) => {
-                        const items = path.items || [];
-                        const totalItems = items.length;
-                        const completedCount = items.filter(
-                            (it) => it.isCompleted || (it.completedLearnCount >= it.targetLearnCount && it.completedTestCount >= it.targetTestCount)
-                        ).length;
+                    {uncompletedRoadmaps.map((roadmap) => {
+                        const total = roadmap.totalTasks || 1;
+                        const done = roadmap.completedTasks || 0;
+                        const pct = roadmap.progressPercent || 0;
 
-                        const percent = totalItems > 0 ? Math.round((completedCount / totalItems) * 100) : 0;
-                        const firstUncompletedItem = items.find((it) => !it.isCompleted) || items[0];
-                        const setSlug = firstUncompletedItem?.studySet?.slug || 'tieng-anh-du-lich';
+                        // Tìm task đang học hiện tại
+                        const currentPhase = roadmap.phases?.find((p) => p.id === roadmap.currentPhaseId) || roadmap.phases?.[0];
+                        const currentTask = currentPhase?.tasks?.find((t) => t.id === roadmap.currentTaskId) || currentPhase?.tasks?.[0];
 
                         const handleContinue = () => {
-                            if (firstUncompletedItem) {
-                                navigate(`/studyset/${setSlug}`, {
+                            if (currentTask && currentTask.link) {
+                                navigate(currentTask.link, {
                                     state: {
                                         from: '/paths',
-                                        fromName: 'Lộ trình học',
-                                        pathItemId: firstUncompletedItem.id,
-                                        targetLearnCount: firstUncompletedItem.targetLearnCount,
-                                        targetTestCount: firstUncompletedItem.targetTestCount,
+                                        taskId: currentTask.id,
                                     },
                                 });
                             } else {
@@ -93,32 +81,32 @@ const ContinueLearning = () => {
 
                         return (
                             <div
-                                key={path.id}
+                                key={roadmap.id}
                                 className="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs hover:shadow-md hover:border-blue-300 transition-all flex flex-col justify-between group"
                             >
                                 <div>
                                     {/* Icon & Badge */}
                                     <div className="flex items-center justify-between mb-3">
-                                        <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center text-2xl font-bold">
-                                            {path.icon || '🎓'}
+                                        <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center text-xl font-bold">
+                                            🎯
                                         </div>
                                         <span className="px-2 py-0.5 bg-slate-100 text-slate-600 font-bold text-[10px] rounded-lg">
-                                            {path.level || 'Trung bình'}
+                                            Mục tiêu {roadmap.targetScore || 650}đ
                                         </span>
                                     </div>
 
                                     <h3 className="font-extrabold text-slate-900 text-sm line-clamp-1 group-hover:text-blue-600 transition-colors">
-                                        {path.title}
+                                        {roadmap.title}
                                     </h3>
                                     <p className="text-xs text-slate-400 font-semibold mt-1">
-                                        {completedCount}/{totalItems} mốc đã hoàn thành
+                                        {done}/{total} tác vụ · {roadmap.phases?.length || 0} chặng
                                     </p>
 
                                     {/* Progress Bar */}
                                     <div className="w-full bg-slate-100 h-2 rounded-full mt-3.5 overflow-hidden">
                                         <div
                                             className="h-full bg-blue-600 rounded-full transition-all duration-500"
-                                            style={{ width: `${percent}%` }}
+                                            style={{ width: `${pct}%` }}
                                         />
                                     </div>
                                 </div>

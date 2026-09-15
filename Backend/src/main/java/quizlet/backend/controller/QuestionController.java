@@ -3,6 +3,7 @@ package quizlet.backend.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import quizlet.backend.dto.res.APIResponse;
 import quizlet.backend.dto.QuestionDTO;
@@ -19,6 +20,7 @@ public class QuestionController {
 
     // POST /api/questions
     @PostMapping
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<QuestionDTO>> createQuestion(@RequestBody QuestionDTO dto) {
         QuestionDTO result = questionService.createQuestion(dto);
         APIResponse<QuestionDTO> response = new APIResponse<>();
@@ -30,6 +32,7 @@ public class QuestionController {
 
     // POST /api/questions/bulk
     @PostMapping("/bulk")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<List<QuestionDTO>>> createQuestionsBulk(@RequestBody List<QuestionDTO> dtos) {
         List<QuestionDTO> result = questionService.createQuestionsBulk(dtos);
         APIResponse<List<QuestionDTO>> response = new APIResponse<>();
@@ -40,6 +43,7 @@ public class QuestionController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<QuestionDTO>> getQuestionDetail(@PathVariable Long id) {
         QuestionDTO q = questionService.getQuestionById(id);
         APIResponse<QuestionDTO> response = new APIResponse<>();
@@ -55,6 +59,7 @@ public class QuestionController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<Void>> deleteQuestion(@PathVariable Long id) {
         questionService.deleteQuestion(id);
         APIResponse<Void> response = new APIResponse<>();
@@ -63,3 +68,4 @@ public class QuestionController {
         return ResponseEntity.ok(response);
     }
 }
+

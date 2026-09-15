@@ -20,15 +20,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [user, setUserState] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
 
-    // Fetch current logged-in user ONCE at root level
+    // Fetch current logged-in user ONCE at root level (sử dụng Cookie hoặc Token)
     const fetchUser = useCallback(async (): Promise<UserProfile | null> => {
-        const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
-        if (!token) {
-            setUserState(null);
-            setLoading(false);
-            return null;
-        }
-
         try {
             setLoading(true);
             const u = await AuthService.getCurrentUser();
@@ -63,7 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const role = user?.role || 'STUDENT';
     const isTeacher = role === 'TEACHER';
     const isAdmin = role === 'ADMIN';
-    const isAuthenticated = Boolean(user && (localStorage.getItem('auth_token') || localStorage.getItem('token')));
+    const isAuthenticated = Boolean(user);
 
     return (
         <AuthContext.Provider

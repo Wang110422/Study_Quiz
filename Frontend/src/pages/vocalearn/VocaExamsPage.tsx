@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   FileText,
   Play,
@@ -7,6 +7,7 @@ import {
   FileCheck2,
   ArrowRight,
   Loader2,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import VocaHeader from '@/components/vocalearn/layout/VocaHeader';
@@ -31,6 +32,7 @@ const skillTabs = [
 const VocaExamsPage = () => {
   const navigate = useNavigate();
   const [skill, setSkill] = useState<string>('all');
+  const [typeFilter, setTypeFilter] = useState<string>('ALL');
   const [query, setQuery] = useState<string>('');
   const [exams, setExams] = useState<ExamDTO[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -51,21 +53,35 @@ const VocaExamsPage = () => {
     fetchExams();
   }, []);
 
+  // Lấy danh sách các ExamType động từ bảng exam
+  const availableTypes = useMemo(() => {
+    const types = new Set<string>();
+    exams.forEach((e) => {
+      if (e.type) types.add(e.type);
+    });
+    return Array.from(types);
+  }, [exams]);
+
   const activeTab = skillTabs.find((s) => s.id === skill) || skillTabs[0];
 
-  // Lọc theo kỹ năng và tìm kiếm
-  const filteredList = exams.filter((e) => {
-    const matchSkill =
-      skill === 'all' ||
-      e.primarySkill === activeTab.skillType ||
-      e.sections?.some((s) => s.skill === activeTab.skillType);
+  // Lọc chính xác theo kỹ năng, cột type (ExamType) của bảng exam và từ khóa tìm kiếm
+  const filteredList = useMemo(() => {
+    return exams.filter((e) => {
+      const matchSkill =
+        skill === 'all' ||
+        e.primarySkill === activeTab.skillType ||
+        e.sections?.some((s) => s.skill === activeTab.skillType);
 
-    const matchQuery =
-      e.title.toLowerCase().includes(query.toLowerCase()) ||
-      (e.description && e.description.toLowerCase().includes(query.toLowerCase()));
+      const matchType = typeFilter === 'ALL' || e.type === typeFilter;
 
-    return matchSkill && matchQuery;
-  });
+      const matchQuery =
+        !query.trim() ||
+        e.title.toLowerCase().includes(query.toLowerCase()) ||
+        (e.description && e.description.toLowerCase().includes(query.toLowerCase()));
+
+      return matchSkill && matchType && matchQuery;
+    });
+  }, [exams, skill, activeTab, typeFilter, query]);
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans flex flex-col select-none pb-20">
@@ -114,7 +130,34 @@ const VocaExamsPage = () => {
             ))}
           </div>
 
-          {/* 3. Ô tìm kiếm bộ đề */}
+          {/* 3. Khung Bộ Lọc Đề Thi */}
+          <div className="surface-card space-y-3 p-5 rounded-3xl border border-border shadow-2xs">
+            <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+              <SlidersHorizontal className="h-4 w-4 text-primary" />
+              Bộ lọc đề thi
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <TabPill
+                active={typeFilter === 'ALL'}
+                onClick={() => setTypeFilter('ALL')}
+                className="h-9 px-3.5 text-xs font-semibold cursor-pointer"
+              >
+                Tất cả loại đề
+              </TabPill>
+              {availableTypes.map((t) => (
+                <TabPill
+                  key={t}
+                  active={typeFilter === t}
+                  onClick={() => setTypeFilter(t)}
+                  className="h-9 px-3.5 text-xs font-semibold cursor-pointer"
+                >
+                  {t}
+                </TabPill>
+              ))}
+            </div>
+          </div>
+
+          {/* 4. Ô tìm kiếm bộ đề */}
           <label className="surface-card relative flex h-14 items-center p-0 rounded-2xl border border-border shadow-2xs cursor-text">
             <Search className="pointer-events-none absolute left-5 h-4 w-4 text-muted-foreground" />
             <input

@@ -2,19 +2,10 @@ package quizlet.backend.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import quizlet.backend.dto.FolderDTO;
-import quizlet.backend.dto.SchoolClassDTO;
-import quizlet.backend.dto.StudySetDTO;
-import quizlet.backend.dto.UserDTO;
+import quizlet.backend.dto.*;
 import quizlet.backend.enums.Role;
-import quizlet.backend.model.Folder;
-import quizlet.backend.model.SchoolClass;
-import quizlet.backend.model.StudySet;
-import quizlet.backend.model.User;
-import quizlet.backend.repository.FolderRepository;
-import quizlet.backend.repository.SchoolClassRepository;
-import quizlet.backend.repository.StudySetRepository;
-import quizlet.backend.repository.UserRepository;
+import quizlet.backend.model.*;
+import quizlet.backend.repository.*;
 
 import java.util.UUID;
 import java.util.List;
@@ -34,6 +25,9 @@ public class SchoolClassService {
 
     @Autowired
     private FolderRepository folderRepository;
+
+    @Autowired
+    private ExamRepository examRepository;
 
     // 1. Giáo viên tạo lớp học mới
     public SchoolClassDTO createClass(User teacher, SchoolClassDTO dto) {
@@ -103,6 +97,39 @@ public class SchoolClassService {
         return convertToDTO(saved);
     }
 
+    // 5b. Giáo viên thêm Đề thi vào lớp
+    public SchoolClassDTO addExamToClass(User teacher, Long classId, Long examId) {
+        SchoolClass schoolClass = schoolClassRepository.findById(classId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học"));
+
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đề thi"));
+
+        schoolClass.getExams().add(exam);
+        SchoolClass saved = schoolClassRepository.save(schoolClass);
+        return convertToDTO(saved);
+    }
+
+    // 5c. Giáo viên xóa Đề thi khỏi lớp
+    public SchoolClassDTO removeExamFromClass(User teacher, Long classId, Long examId) {
+        SchoolClass schoolClass = schoolClassRepository.findById(classId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học"));
+
+        schoolClass.getExams().removeIf(e -> e.getId().equals(examId));
+        SchoolClass saved = schoolClassRepository.save(schoolClass);
+        return convertToDTO(saved);
+    }
+
+    // 5d. Giáo viên xóa Học sinh khỏi lớp
+    public SchoolClassDTO removeStudentFromClass(User teacher, Long classId, Long studentId) {
+        SchoolClass schoolClass = schoolClassRepository.findById(classId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học"));
+
+        schoolClass.getStudents().removeIf(s -> s.getId().equals(studentId));
+        SchoolClass saved = schoolClassRepository.save(schoolClass);
+        return convertToDTO(saved);
+    }
+
     // 6. Sinh viên tham gia lớp học bằng mã/đường link (joinCode)
     public SchoolClassDTO joinClassByCode(User student, String joinCode) {
         SchoolClass schoolClass = schoolClassRepository.findByJoinCodeAndIsDelFalse(joinCode.trim().toUpperCase())
@@ -144,6 +171,7 @@ public class SchoolClassService {
         dto.setStudentsCount(c.getStudents() != null ? c.getStudents().size() : 0);
         dto.setSetsCount(c.getStudySets() != null ? c.getStudySets().size() : 0);
         dto.setFoldersCount(c.getFolders() != null ? c.getFolders().size() : 0);
+        dto.setExamsCount(c.getExams() != null ? c.getExams().size() : 0);
 
         if (c.getStudents() != null) {
             dto.setStudents(c.getStudents().stream().map(u -> {
@@ -181,6 +209,19 @@ public class SchoolClassService {
                     sdto.setFolderSlug(s.getFolder().getSlug());
                 }
                 return sdto;
+            }).collect(Collectors.toList()));
+        }
+
+        if (c.getExams() != null) {
+            dto.setExams(c.getExams().stream().map(e -> {
+                ExamDTO edto = new ExamDTO();
+                edto.setId(e.getId());
+                edto.setTitle(e.getTitle());
+                edto.setTotalMinutes(e.getTotalMinutes());
+                edto.setTotalScore(e.getTotalScore());
+                edto.setType(e.getType());
+                edto.setFormat(e.getFormat());
+                return edto;
             }).collect(Collectors.toList()));
         }
 

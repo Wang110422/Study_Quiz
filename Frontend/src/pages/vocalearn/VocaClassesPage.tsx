@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
   Users,
   Plus,
@@ -8,6 +8,8 @@ import {
   Check,
   BookOpen,
   Loader2,
+  GraduationCap,
+  FileText,
 } from 'lucide-react';
 import VocaHeader from '@/components/vocalearn/layout/VocaHeader';
 import VocaSidebar from '@/components/vocalearn/layout/VocaSidebar';
@@ -17,6 +19,9 @@ import JoinByCodeModal from '@/components/vocalearn/modals/JoinByCodeModal';
 import { useClassesOrGroups } from '@/hooks/useClassesOrGroups';
 
 const VocaClassesPage = () => {
+  const location = useLocation();
+  const isClassesPage = location.pathname.startsWith('/classes');
+
   const {
     classesOrGroups,
     loading,
@@ -34,6 +39,16 @@ const VocaClassesPage = () => {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const pageTitle = isClassesPage
+    ? (isTeacher ? 'Quản lý Lớp học' : 'Lớp học của tôi')
+    : 'Nhóm học tập';
+
+  const pageSubtitle = isClassesPage
+    ? (isTeacher
+        ? 'Quản lý các lớp học của bạn, thêm học sinh, giao đề thi và bộ từ vựng.'
+        : 'Danh sách các lớp học bạn đã tham gia. Nhập mã mời của giảng viên để tham gia lớp mới.')
+    : 'Học cùng bạn bè, chia sẻ thư mục và theo dõi tiến độ của cả nhóm.';
+
   return (
     <div className="min-h-screen bg-slate-50/50 text-slate-900 font-sans flex flex-col select-none pb-20">
       {/* Fixed Left Sidebar */}
@@ -50,20 +65,25 @@ const VocaClassesPage = () => {
             <div className="flex items-center gap-4">
               {/* Icon ô vuông bo góc mềm màu xanh nhạt */}
               <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                <Users className="w-6 h-6" />
+                {isClassesPage ? <GraduationCap className="w-6 h-6" /> : <Users className="w-6 h-6" />}
               </div>
 
               <div>
-                <h1 className="text-xl font-bold text-slate-900">
-                  {isTeacher ? 'Quản lý Lớp học' : 'Nhóm học'}
-                </h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl font-bold text-slate-900">
+                    {pageTitle}
+                  </h1>
+                  <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-bold">
+                    {isClassesPage ? (isTeacher ? 'Giảng viên' : 'Sinh viên') : 'Cộng đồng'}
+                  </span>
+                </div>
                 <p className="text-xs text-slate-400 font-normal mt-0.5">
-                  Học cùng bạn bè, chia sẻ thư mục và theo dõi tiến độ của cả nhóm.
+                  {pageSubtitle}
                 </p>
               </div>
             </div>
 
-            {/* 2 nút hành động nằm trong khối chữ nhật bo góc */}
+            {/* Các nút hành động */}
             <div className="flex items-center gap-3 shrink-0">
               <button
                 type="button"
@@ -71,17 +91,20 @@ const VocaClassesPage = () => {
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-slate-200 bg-white hover:bg-slate-50 px-5 text-sm font-semibold text-slate-700 transition cursor-pointer shadow-2xs active:scale-95"
               >
                 <Link2 className="h-4 w-4 text-blue-600" />
-                <span>Tham gia bằng mã</span>
+                <span>{isClassesPage ? 'Tham gia bằng mã mời' : 'Tham gia bằng mã'}</span>
               </button>
 
-              <button
-                type="button"
-                onClick={() => setIsCreateOpen(true)}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-blue-600 hover:bg-blue-700 px-5 text-sm font-semibold text-white transition shadow-pop cursor-pointer active:scale-95"
-              >
-                <Plus className="h-4 w-4" />
-                <span>{isTeacher ? 'Tạo Lớp học mới' : 'Tạo Nhóm học mới'}</span>
-              </button>
+              {/* Chỉ hiển thị nút tạo mới nếu là giáo viên trên trang lớp học, hoặc trên trang nhóm học */}
+              {(isTeacher || !isClassesPage) && (
+                <button
+                  type="button"
+                  onClick={() => setIsCreateOpen(true)}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-blue-600 hover:bg-blue-700 px-5 text-sm font-semibold text-white transition shadow-pop cursor-pointer active:scale-95"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>{isClassesPage ? 'Tạo Lớp học mới' : 'Tạo Nhóm học mới'}</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -90,31 +113,50 @@ const VocaClassesPage = () => {
             <div className="py-20 flex flex-col items-center justify-center text-slate-400 gap-3">
               <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
               <span className="text-xs font-semibold">
-                Đang tải danh sách {isTeacher ? 'lớp học' : 'nhóm học'}...
+                Đang tải danh sách {isClassesPage ? 'lớp học' : 'nhóm học'}...
               </span>
             </div>
           ) : classesOrGroups.length === 0 ? (
-            /* Component Bạn chưa tham gia nhóm học nào (Hình chữ nhật bo tròn màu trắng) */
+            /* Component Bạn chưa tham gia lớp / nhóm nào */
             <div className="surface-card p-16 text-center w-full rounded-3xl shadow-2xs space-y-3">
               <div className="w-14 h-14 rounded-2xl bg-blue-50/80 text-blue-600 flex items-center justify-center mx-auto mb-3">
-                <Users className="w-7 h-7" />
+                {isClassesPage ? <GraduationCap className="w-7 h-7" /> : <Users className="w-7 h-7" />}
               </div>
               <h2 className="text-base font-bold text-slate-900">
-                {isTeacher ? 'Bạn chưa tạo lớp học nào' : 'Bạn chưa tham gia nhóm học nào'}
+                {isClassesPage
+                  ? (isTeacher ? 'Bạn chưa tạo lớp học nào' : 'Bạn chưa tham gia lớp học nào')
+                  : 'Bạn chưa tham gia nhóm học nào'}
               </h2>
               <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
-                {isTeacher
-                  ? 'Bấm "Tạo Lớp học mới" hoặc "Tham gia bằng mã" để bắt đầu giảng dạy!'
+                {isClassesPage
+                  ? (isTeacher
+                      ? 'Bấm "Tạo Lớp học mới" để tạo lớp, lấy mã mời và thêm sinh viên vào lớp học!'
+                      : 'Hãy bấm "Tham gia bằng mã mời" và nhập mã mời (CLASS-XXXXXX) do giảng viên cung cấp để vào lớp!')
                   : 'Bấm "Tạo Nhóm học mới" hoặc "Tham gia bằng mã" để học cùng bạn bè ngay!'}
               </p>
+              {!isTeacher && isClassesPage && (
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsJoinOpen(true)}
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-blue-600 hover:bg-blue-700 px-5 text-xs font-semibold text-white transition shadow-pop cursor-pointer active:scale-95"
+                  >
+                    <Link2 className="h-3.5 w-3.5" />
+                    <span>Nhập mã lớp ngay</span>
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-3">
               {classesOrGroups.map((g) => {
                 const membersCount = g.studentsCount || g.membersCount || 1;
                 const setsCount = g.setsCount || 0;
-                const ownerName = isTeacher ? g.teacherName || 'Tôi' : g.creatorName || 'Tôi';
-                const groupLink = isTeacher ? `/classes/${g.id}` : `/study-groups/${g.id}`;
+                const examsCount = g.examsCount || 0;
+                const ownerName = isClassesPage
+                  ? (g.teacherName || 'Giảng viên')
+                  : (g.creatorName || 'Tôi');
+                const groupLink = isClassesPage ? `/classes/${g.id}` : `/study-groups/${g.id}`;
 
                 return (
                   <Link
@@ -158,8 +200,14 @@ const VocaClassesPage = () => {
                         <span className="flex items-center gap-1.5">
                           <BookOpen className="h-3.5 w-3.5 text-primary" /> {setsCount} bộ thẻ
                         </span>
+                        {isClassesPage && (
+                          <span className="flex items-center gap-1.5">
+                            <FileText className="h-3.5 w-3.5 text-primary" /> {examsCount} đề thi
+                          </span>
+                        )}
                         <span className="sm:ml-auto">
-                          Quản lý: <span className="font-semibold text-foreground">{ownerName}</span>
+                          {isClassesPage ? 'Giảng viên: ' : 'Quản lý: '}
+                          <span className="font-semibold text-foreground">{ownerName}</span>
                         </span>
                       </div>
                     </div>

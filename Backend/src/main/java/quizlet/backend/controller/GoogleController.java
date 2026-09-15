@@ -3,6 +3,7 @@ package quizlet.backend.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import quizlet.backend.dto.res.APIResponse;
@@ -18,6 +19,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/google")
+@PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN')")
 public class GoogleController {
     @Autowired
     private GoogleSheetService googleSheetService;

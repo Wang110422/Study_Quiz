@@ -3,6 +3,7 @@ package quizlet.backend.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import quizlet.backend.dto.res.APIResponse;
 import quizlet.backend.dto.SectionDTO;
@@ -18,6 +19,7 @@ public class SectionController {
     // POST /api/sections
     // Nhận JSON Section gồm: examId, title, skill, orderIndex, passageGroups (kèm questions lồng nhau)
     @PostMapping
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<SectionDTO>> createSection(@RequestBody SectionDTO dto) {
         SectionDTO result = sectionService.createSection(dto);
         APIResponse<SectionDTO> response = new APIResponse<>();
@@ -28,6 +30,7 @@ public class SectionController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<SectionDTO>> getSectionDetail(@PathVariable Integer id) {
         SectionDTO section = sectionService.getSectionById(id);
         APIResponse<SectionDTO> response = new APIResponse<>();
@@ -43,6 +46,7 @@ public class SectionController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<Void>> deleteSection(@PathVariable Integer id) {
         sectionService.deleteSection(id);
         APIResponse<Void> response = new APIResponse<>();
@@ -51,3 +55,4 @@ public class SectionController {
         return ResponseEntity.ok(response);
     }
 }
+

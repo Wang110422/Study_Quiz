@@ -37,7 +37,8 @@ export interface ExamDTO {
     description: string;
     totalMinutes: number;
     totalScore: number;
-    type: 'FULL_TEST' | 'PRACTICE' | string;
+    type?: 'TOEIC' | 'IELTS' | 'TOPIC' | 'APTIS' | string;
+    format?: 'FULL_TEST' | 'PRACTICE' | string;
     primarySkill?: 'LISTENING' | 'READING' | 'WRITING' | 'SPEAKING' | 'GRAMMAR' | 'VOCABULARY' | string;
     sectionCount?: number;
     totalQuestions?: number;
@@ -57,9 +58,10 @@ export interface ExamAttemptDTO {
 }
 
 export const examService = {
-    getPracticeExams: async (): Promise<ExamDTO[]> => {
+    getPracticeExams: async (type?: string): Promise<ExamDTO[]> => {
         try {
-            const response = await api.get('/exams/practice');
+            const params = type && type !== 'all' ? { type: type.toUpperCase() } : {};
+            const response = await api.get('/exams/practice', { params });
             return response.data?.result || [];
         } catch (err) {
             console.error('Lỗi khi lấy danh sách đề luyện tập:', err);
@@ -67,9 +69,10 @@ export const examService = {
         }
     },
 
-    getMockExams: async (): Promise<ExamDTO[]> => {
+    getMockExams: async (type?: string): Promise<ExamDTO[]> => {
         try {
-            const response = await api.get('/exams/mock');
+            const params = type && type !== 'all' ? { type: type.toUpperCase() } : {};
+            const response = await api.get('/exams/mock', { params });
             return response.data?.result || [];
         } catch (err) {
             console.error('Lỗi khi lấy danh sách đề thi thử:', err);

@@ -70,4 +70,15 @@ public class SchoolClass {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private Set<Folder> folders = new HashSet<>();
+
+    // Danh sách các đề thi gắn vào lớp
+    @ManyToMany
+    @JoinTable(
+            name = "school_class_exams",
+            joinColumns = @JoinColumn(name = "class_id"),
+            inverseJoinColumns = @JoinColumn(name = "exam_id")
+    )
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private Set<Exam> exams = new HashSet<>();
 }

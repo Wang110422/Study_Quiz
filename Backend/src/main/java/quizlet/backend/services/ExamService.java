@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import quizlet.backend.dto.*;
+import quizlet.backend.enums.ExamFormat;
 import quizlet.backend.enums.ExamType;
 import quizlet.backend.enums.Mode;
 import quizlet.backend.enums.SkillType;
@@ -48,7 +49,8 @@ public class ExamService {
         exam.setTitle(dto.getTitle());
         exam.setTotalMinutes(dto.getTotalMinutes() != null ? dto.getTotalMinutes() : 120);
         exam.setTotalScore(dto.getTotalScore() != null ? dto.getTotalScore() : 100);
-        exam.setType(dto.getType() != null ? dto.getType() : ExamType.FULL_TEST);
+        exam.setType(dto.getType() != null ? dto.getType() : ExamType.TOEIC);
+        exam.setFormat(dto.getFormat() != null ? dto.getFormat() : ExamFormat.FULL_TEST);
         exam.setCreatedAt(LocalDateTime.now());
 
         Exam savedExam = examRepository.save(exam);
@@ -108,9 +110,28 @@ public class ExamService {
     }
 
     @Transactional(readOnly = true)
-    public List<ExamDTO> getExamsByType(ExamType type) {
-        List<Exam> exams = (type != null) ? examRepository.findByType(type) : examRepository.findAll();
+    public List<ExamDTO> getExams(ExamFormat format, ExamType type) {
+        List<Exam> exams;
+        if (format != null && type != null) {
+            exams = examRepository.findByFormatAndType(format, type);
+        } else if (format != null) {
+            exams = examRepository.findByFormat(format);
+        } else if (type != null) {
+            exams = examRepository.findByType(type);
+        } else {
+            exams = examRepository.findAll();
+        }
         return exams.stream().map(this::mapToOverviewDTO).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<ExamDTO> getExamsByType(ExamType type) {
+        return getExams(null, type);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ExamDTO> getExamsByFormat(ExamFormat format) {
+        return getExams(format, null);
     }
 
     @Transactional(readOnly = true)
@@ -388,6 +409,7 @@ public class ExamService {
                 .totalMinutes(exam.getTotalMinutes() != null ? exam.getTotalMinutes() : 60)
                 .totalScore(exam.getTotalScore() != null ? exam.getTotalScore() : 500)
                 .type(exam.getType())
+                .format(exam.getFormat())
                 .primarySkill(primarySkill)
                 .sectionCount(sectionCount)
                 .totalQuestions(totalQuestions)
@@ -459,6 +481,7 @@ public class ExamService {
                 .totalMinutes(exam.getTotalMinutes() != null ? exam.getTotalMinutes() : 60)
                 .totalScore(exam.getTotalScore() != null ? exam.getTotalScore() : 500)
                 .type(exam.getType())
+                .format(exam.getFormat())
                 .sectionCount(sectionDTOs.size())
                 .totalQuestions(finalTotalQuestions)
                 .sections(sectionDTOs)

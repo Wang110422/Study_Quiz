@@ -23,6 +23,7 @@ import {
 } from "@/components/app/ui-bits";
 import { SectionTitle } from "@/components/app/PageHeader";
 import grammarService, { type GrammarSetDTO, type GrammarDTO } from "@/services/grammarService";
+import roadmapService from "@/services/roadmapService";
 
 interface TopicItem {
   id: number | string;
@@ -318,7 +319,7 @@ const StudyGrammarPage = () => {
   };
 
   const basePath = folderSlug && slug ? `/folders/${folderSlug}/${slug}/grammar` : `/studyset/${slug || "tieng-anh-du-lich"}/grammar`;
-  const pathItemId = location.state?.pathItemId;
+  const pathItemId = location.state?.pathItemId || location.state?.taskId;
 
   const select = (id: string | number) => {
     const foundIdx = topics.findIndex((t) => t.id === id);
@@ -432,6 +433,34 @@ const StudyGrammarPage = () => {
                 <div className="mt-3">
                   <Progress value={percent} />
                 </div>
+
+                {/* Banner Lộ Trình Học nếu đang học theo nhiệm vụ lộ trình */}
+                {pathItemId && (
+                  <div className="mt-4 p-4 rounded-3xl border border-blue-200 bg-blue-50/70 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">🎯</span>
+                      <div>
+                        <span className="text-xs font-bold text-blue-900 block">
+                          Bạn đang thực hiện nhiệm vụ Ngữ pháp theo Lộ trình
+                        </span>
+                        <span className="text-xs text-blue-600">
+                          Đọc hiểu các chủ điểm ngữ pháp và làm câu hỏi kiểm tra, sau đó bấm nút hoàn thành để mở khóa nhiệm vụ tiếp theo.
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await roadmapService.updateTaskProgress(pathItemId, { isCompleted: true, mode: 'COMPLETE' });
+                        alert('✓ Đã cập nhật hoàn thành nhiệm vụ ngữ pháp! Chuyển về lộ trình học...');
+                        navigate('/paths');
+                      }}
+                      className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-2xl shadow-xs cursor-pointer shrink-0 transition"
+                    >
+                      ✓ Đã học xong & Cập nhật lộ trình
+                    </button>
+                  </div>
+                )}
                 <p className="mt-2 text-xs text-muted-foreground">
                   Đã hoàn thành {done.length}/{topics.length} chủ điểm
                 </p>
