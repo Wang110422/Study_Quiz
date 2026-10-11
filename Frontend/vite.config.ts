@@ -16,6 +16,7 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  // post: 3000,
   server: {
     host: true,
     proxy: {

@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Layers, Check, FolderKanban, Lock, Image as ImageIcon, ChevronUp, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Layers, Check, Lock, Image as ImageIcon, ChevronUp, ChevronDown, Folder } from 'lucide-react';
+import CustomSelect, { type SelectOption } from '../../components/common/CustomSelect';
 import VocaHeader from '../../components/vocalearn/layout/VocaHeader';
 import VocaSidebar from '../../components/vocalearn/layout/VocaSidebar';
 import useFolders from '../../hooks/useFolders';
@@ -22,6 +23,16 @@ const CreateStudySetPage = () => {
     const presetFolderSlug = searchParams.get('folderSlug');
 
     const { folders, loading: loadingFolders } = useFolders();
+
+    const folderOptions: SelectOption[] = useMemo(() => [
+        { value: '', label: 'Không chọn thư mục (Tạo bộ thẻ độc lập)', description: 'Bộ từ vựng sẽ hiển thị trực tiếp trong thư viện' },
+        ...folders.map((f) => ({
+            value: f.slug,
+            label: f.name,
+            description: f.description || 'Thư mục cá nhân',
+            icon: <Folder className="w-3.5 h-3.5 text-blue-500" />,
+        })),
+    ], [folders]);
 
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
@@ -118,9 +129,7 @@ const CreateStudySetPage = () => {
 
     return (
         <div className="min-h-screen bg-slate-50/50 text-slate-900 font-sans flex flex-col select-none">
-            <VocaSidebar />
-
-            <div className="pl-[260px] flex flex-col min-h-screen">
+            <div className="flex flex-col min-h-screen w-full">
                 <VocaHeader />
 
                 <main className="flex-1 p-6 lg:p-8 max-w-[1200px] w-full mx-auto">
@@ -193,30 +202,15 @@ const CreateStudySetPage = () => {
                                             </span>
                                         )}
                                     </label>
-                                    <div className="relative">
-                                        <FolderKanban className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                                        <select
-                                            value={selectedFolderSlug}
-                                            disabled={isFixedFolder}
-                                            onChange={(e) => setSelectedFolderSlug(e.target.value)}
-                                            className={`w-full border rounded-xl pl-10 pr-4 py-2.5 text-xs font-semibold outline-none transition-all appearance-none ${
-                                                isFixedFolder
-                                                    ? 'bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed'
-                                                    : 'bg-slate-50 border-slate-200 focus:border-blue-500 focus:bg-white text-slate-800 cursor-pointer'
-                                            }`}
-                                        >
-                                            <option value="">🌐 Không chọn thư mục (Tạo bộ thẻ độc lập)</option>
-                                            {loadingFolders ? (
-                                                <option value="">Đang tải thư mục...</option>
-                                            ) : (
-                                                folders.map((f) => (
-                                                    <option key={f.id || f.slug} value={f.slug}>
-                                                        📁 Thư mục: {f.name}
-                                                    </option>
-                                                ))
-                                            )}
-                                        </select>
-                                    </div>
+                                    <CustomSelect
+                                        value={selectedFolderSlug}
+                                        disabled={isFixedFolder}
+                                        onChange={(val) => setSelectedFolderSlug(val)}
+                                        options={folderOptions}
+                                        placeholder={loadingFolders ? 'Đang tải thư mục...' : 'Chọn thư mục lưu trữ...'}
+                                        prefixIcon={<Folder className="w-4 h-4 text-slate-400" />}
+                                        searchable={folders.length > 4}
+                                    />
                                 </div>
                             </div>
                         </div>

@@ -51,7 +51,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String jti = jwtTokenProvider.getJtiFromToken(jwt);
                 // Kiem tra trong redis neu có thì sẽ chặn request
                 Boolean isBlacklisted = jwtCacheService.isBlacklistJwtToken(jti);
-                
+
                 if(isBlacklisted){
                     // Chặn request
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -97,5 +97,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         }
         return null;
+    }
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getServletPath();
+        return path.equals("/")
+                || path.startsWith("/api/auth/")
+                || path.startsWith("/oauth2/")
+                || path.startsWith("/login/oauth2/")
+                || path.equals("/error");
     }
 }

@@ -12,7 +12,6 @@ import {
 import VocaHeader from '@/components/vocalearn/layout/VocaHeader';
 import VocaSidebar from '@/components/vocalearn/layout/VocaSidebar';
 import { PageHeader } from '@/components/app/PageHeader';
-import { EmojiTile } from '@/components/app/ui-bits';
 import trashService, { type TrashData } from '@/services/trashService';
 
 const VocaTrashPage = () => {
@@ -68,11 +67,8 @@ const VocaTrashPage = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans flex flex-col select-none pb-20">
-      {/* Fixed Left Sidebar */}
-      <VocaSidebar />
-
-      {/* Main Container Offset */}
-      <div className="pl-[260px] flex flex-col min-h-screen">
+      {/* Main Container */}
+      <div className="flex flex-col min-h-screen w-full">
         {/* Top Header */}
         <VocaHeader />
 
@@ -161,7 +157,9 @@ const VocaTrashPage = () => {
                       {trashData.folders.map((item) => (
                         <article key={item.id} className="surface-card p-5 flex flex-col justify-between">
                           <div className="flex items-start gap-3">
-                            <EmojiTile>{item.icon || '📁'}</EmojiTile>
+                            <div className="flex h-11 w-11 flex-none items-center justify-center rounded-2xl bg-blue-50 border border-blue-100 text-blue-600">
+                              <Folder className="h-5 w-5" />
+                            </div>
                             <div className="min-w-0 flex-1">
                               <p className="font-bold text-foreground text-sm">{item.name}</p>
                               <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
@@ -207,7 +205,9 @@ const VocaTrashPage = () => {
                       {trashData.studySets.map((item) => (
                         <article key={item.id} className="surface-card p-5 flex flex-col justify-between">
                           <div className="flex items-start gap-3">
-                            <EmojiTile>📚</EmojiTile>
+                            <div className="flex h-11 w-11 flex-none items-center justify-center rounded-2xl bg-blue-50 border border-blue-100 text-blue-600">
+                              <Layers className="h-5 w-5" />
+                            </div>
                             <div className="min-w-0 flex-1">
                               <p className="font-bold text-foreground text-sm">{item.titleName}</p>
                               <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
@@ -253,7 +253,9 @@ const VocaTrashPage = () => {
                       {trashData.vocabularies.map((item) => (
                         <article key={item.id} className="surface-card p-5 flex flex-col justify-between">
                           <div className="flex items-start gap-3">
-                            <EmojiTile>🔤</EmojiTile>
+                            <div className="flex h-11 w-11 flex-none items-center justify-center rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600">
+                              <Type className="h-5 w-5" />
+                            </div>
                             <div className="min-w-0 flex-1">
                               <p className="font-bold text-foreground text-sm">{item.term}</p>
                               <p className="mt-0.5 text-xs text-muted-foreground bg-muted/50 p-2 rounded-xl border border-border mt-1">

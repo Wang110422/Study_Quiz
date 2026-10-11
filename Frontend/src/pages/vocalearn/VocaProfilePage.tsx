@@ -76,9 +76,7 @@ const VocaProfilePage = () => {
 
     return (
         <div className="min-h-screen bg-slate-50/50 text-slate-900 font-sans flex flex-col select-none pb-20">
-            <VocaSidebar />
-
-            <div className="pl-[260px] flex flex-col min-h-screen">
+            <div className="flex flex-col min-h-screen w-full">
                 <VocaHeader />
 
                 <main className="flex-1 p-6 lg:p-8 max-w-[1200px] w-full mx-auto">
@@ -227,7 +225,7 @@ const VocaProfilePage = () => {
                                                     <GraduationCap className="w-5 h-5" />
                                                 </div>
                                                 <div>
-                                                    <h4 className="font-bold text-slate-900 text-sm">👨‍🎓 Học sinh / Người học (Student)</h4>
+                                                    <h4 className="font-bold text-slate-900 text-sm">Học sinh / Người học (Student)</h4>
                                                     <p className="text-xs text-slate-400 mt-0.5 font-normal">
                                                         Học từ vựng, tạo các bộ thẻ cá nhân và ôn luyện các lộ trình học.
                                                     </p>
@@ -248,7 +246,7 @@ const VocaProfilePage = () => {
                                                     <School className="w-5 h-5" />
                                                 </div>
                                                 <div>
-                                                    <h4 className="font-bold text-slate-900 text-sm">👨‍🏫 Giáo viên / Giảng viên (Teacher)</h4>
+                                                    <h4 className="font-bold text-slate-900 text-sm">Giáo viên / Giảng viên (Teacher)</h4>
                                                     <p className="text-xs text-slate-400 mt-0.5 font-normal">
                                                         Tạo các lớp học, giao bài tập bộ thẻ và quản lý học sinh.
                                                     </p>

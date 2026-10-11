@@ -39,6 +39,10 @@ public class ExamService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    @org.springframework.context.annotation.Lazy
+    private UserStreakService userStreakService;
+
     // =========================================================================
     // 🌟 1. CÁC PHƯƠNG THỨC POST ĐỂ THÊM DỮ LIỆU THẬT QUA POSTMAN
     // =========================================================================
@@ -164,6 +168,13 @@ public class ExamService {
         attempt.setAnswerDetail("{}");
         System.out.println("Starting exam attempt " + attempt.toString());
         ExamAttempt saved = examAttemptRepository.save(attempt);
+
+        // Tự động ghi nhận hoạt động và tăng streak khi bắt đầu thi thử / kiểm tra
+        if (user != null && userStreakService != null) {
+            try {
+                userStreakService.recordActivity(user);
+            } catch (Exception ignored) {}
+        }
 
         return ExamAttemptDTO.builder()
                 .id(saved.getId())
@@ -303,6 +314,13 @@ public class ExamService {
         attempt.setAnswerDetail(finalAnswerDetailJson);
 
         ExamAttempt saved = examAttemptRepository.save(attempt);
+
+        // Tự động ghi nhận hoạt động và tăng streak khi nộp bài thi
+        if (attempt.getUser() != null && userStreakService != null) {
+            try {
+                userStreakService.recordActivity(attempt.getUser());
+            } catch (Exception ignored) {}
+        }
 
         return ExamAttemptDTO.builder()
                 .id(saved.getId())

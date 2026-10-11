@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Users, FolderKanban, BookOpen, Plus, Copy, Check, ArrowLeft, Link2, Shield, School, GraduationCap, Sparkles, Loader2 } from 'lucide-react';
+import { Users, FolderKanban, BookOpen, Plus, Copy, Check, ArrowLeft, Link2, Shield, School, GraduationCap, Sparkles, Loader2, Folder } from 'lucide-react';
 import VocaHeader from '../../components/vocalearn/layout/VocaHeader';
 import VocaSidebar from '../../components/vocalearn/layout/VocaSidebar';
 import AddResourceToGroupModal from '../../components/vocalearn/modals/AddResourceToGroupModal';
@@ -44,9 +44,7 @@ const GroupDetailPage = () => {
 
     return (
         <div className="min-h-screen bg-slate-50/50 text-slate-900 font-sans flex flex-col select-none pb-20">
-            <VocaSidebar />
-
-            <div className="pl-[260px] flex flex-col min-h-screen">
+            <div className="flex flex-col min-h-screen w-full">
                 <VocaHeader />
 
                 <main className="flex-1 p-6 lg:p-8 max-w-[1400px] w-full mx-auto">
@@ -162,7 +160,9 @@ const GroupDetailPage = () => {
                                                     >
                                                         <div>
                                                             <div className="flex items-center gap-2 mb-2">
-                                                                <span className="text-xl">{f.icon || '📁'}</span>
+                                                                <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
+                                                                    <Folder className="w-3.5 h-3.5" />
+                                                                </div>
                                                                 <h4 className="font-bold text-slate-900 text-xs">Thư mục: {f.name}</h4>
                                                             </div>
                                                             <p className="text-[11px] text-slate-400 mb-3">{f.description || 'Chưa có mô tả'}</p>
@@ -183,7 +183,9 @@ const GroupDetailPage = () => {
                                                     >
                                                         <div>
                                                             <div className="flex items-center gap-2 mb-2">
-                                                                <span className="text-xl">📚</span>
+                                                                <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 border border-purple-100">
+                                                                    <BookOpen className="w-3.5 h-3.5" />
+                                                                </div>
                                                                 <h4 className="font-bold text-slate-900 text-xs">Bộ thẻ: {s.titleName}</h4>
                                                             </div>
                                                             <p className="text-[11px] text-slate-400 mb-3">{s.description || 'Bộ từ vựng ôn tập'}</p>

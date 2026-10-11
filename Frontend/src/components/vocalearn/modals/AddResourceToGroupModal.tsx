@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
-import { FolderKanban, BookOpen, Check, Loader2 } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { FolderKanban, BookOpen, Check, Loader2, Folder, Layers } from 'lucide-react';
 import Modal from '../../common/Modal';
+import CustomSelect, { type SelectOption } from '../../common/CustomSelect';
 import useFolders from '../../../hooks/useFolders';
 import studySetService, { type StudySet } from '../../../services/studySetService';
 import classGroupService from '../../../services/classGroupService';
@@ -21,6 +22,20 @@ const AddResourceToGroupModal = ({ isOpen, onClose, groupId, classId, onSuccess 
     const [resourceType, setResourceType] = useState<'folder' | 'set'>('folder');
     const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
     const [selectedSetId, setSelectedSetId] = useState<number | null>(null);
+
+    const folderOptions: SelectOption[] = useMemo(() => folders.map((f) => ({
+        value: f.id,
+        label: f.name,
+        description: f.description || 'Thư mục cá nhân',
+        icon: <Folder className="w-3.5 h-3.5 text-blue-500" />,
+    })), [folders]);
+
+    const setOptions: SelectOption[] = useMemo(() => studySets.map((s) => ({
+        value: s.id,
+        label: s.titleName,
+        description: s.description || 'Bộ từ vựng cá nhân',
+        icon: <Layers className="w-3.5 h-3.5 text-purple-500" />,
+    })), [studySets]);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
@@ -137,17 +152,14 @@ const AddResourceToGroupModal = ({ isOpen, onClose, groupId, classId, onSuccess 
                         ) : folders.length === 0 ? (
                             <p className="text-xs text-slate-400 italic py-2">Bạn chưa tạo thư mục nào.</p>
                         ) : (
-                            <select
+                            <CustomSelect
                                 value={selectedFolderId || ''}
-                                onChange={(e) => setSelectedFolderId(Number(e.target.value))}
-                                className="w-full bg-slate-50 border border-slate-200 focus:border-blue-500 focus:bg-white rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 outline-none transition-all cursor-pointer"
-                            >
-                                {folders.map((f) => (
-                                    <option key={f.id} value={f.id}>
-                                        📁 Thư mục: {f.name}
-                                    </option>
-                                ))}
-                            </select>
+                                onChange={(val) => setSelectedFolderId(val ? Number(val) : null)}
+                                options={folderOptions}
+                                placeholder="Chọn thư mục..."
+                                prefixIcon={<Folder className="w-4 h-4 text-blue-500" />}
+                                searchable={folders.length > 4}
+                            />
                         )}
                     </div>
                 )}
@@ -166,17 +178,14 @@ const AddResourceToGroupModal = ({ isOpen, onClose, groupId, classId, onSuccess 
                         ) : studySets.length === 0 ? (
                             <p className="text-xs text-slate-400 italic py-2">Bạn chưa tạo bộ từ vựng nào.</p>
                         ) : (
-                            <select
+                            <CustomSelect
                                 value={selectedSetId || ''}
-                                onChange={(e) => setSelectedSetId(Number(e.target.value))}
-                                className="w-full bg-slate-50 border border-slate-200 focus:border-purple-500 focus:bg-white rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 outline-none transition-all cursor-pointer"
-                            >
-                                {studySets.map((s) => (
-                                    <option key={s.id} value={s.id}>
-                                        📚 Bộ thẻ: {s.titleName}
-                                    </option>
-                                ))}
-                            </select>
+                                onChange={(val) => setSelectedSetId(val ? Number(val) : null)}
+                                options={setOptions}
+                                placeholder="Chọn bộ từ vựng..."
+                                prefixIcon={<Layers className="w-4 h-4 text-purple-500" />}
+                                searchable={studySets.length > 4}
+                            />
                         )}
                     </div>
                 )}

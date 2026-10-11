@@ -23,6 +23,52 @@ public class GrammarSetService {
     @Autowired
     private GrammarRepository grammarRepository;
 
+    @Autowired
+    private quizlet.backend.repository.UserRepository userRepository;
+
+    @Autowired
+    private quizlet.backend.repository.FolderRepository folderRepository;
+
+    @Transactional
+    public GrammarSetDTO createGrammarSet(quizlet.backend.dto.req.CreateGrammarSetRequest request, String userEmail) {
+        GrammarSet set = new GrammarSet();
+        set.setTilte(request.getTitle().trim());
+        set.setDescription(request.getDescription() != null ? request.getDescription().trim() : "");
+        set.setIsDel(false);
+
+        String baseSlug = toSlug(request.getTitle().trim());
+        String slug = baseSlug;
+        while (grammarSetRepository.findBySlugAndIsDelFalse(slug).isPresent()) {
+            slug = baseSlug + "-" + (System.currentTimeMillis() % 100000);
+        }
+        set.setSlug(slug);
+
+        if (userEmail != null) {
+            userRepository.findByEmail(userEmail).ifPresent(set::setUser);
+        }
+
+        if (request.getFolderId() != null) {
+            folderRepository.findById(request.getFolderId()).ifPresent(set::setFolder);
+        }
+
+        GrammarSet saved = grammarSetRepository.save(set);
+        return mapToDTO(saved);
+    }
+
+    private String toSlug(String input) {
+        if (input == null || input.trim().isEmpty()) return "grammar-" + System.currentTimeMillis();
+        String normalized = java.text.Normalizer.normalize(input, java.text.Normalizer.Form.NFD);
+        String noDiacritics = java.util.regex.Pattern.compile("\\p{InCombiningDiacriticalMarks}+").matcher(normalized).replaceAll("");
+        String slug = noDiacritics.toLowerCase()
+                .replace("đ", "d")
+                .replace("Đ", "d")
+                .replaceAll("[^a-z0-9\\s-]", "")
+                .replaceAll("\\s+", "-")
+                .replaceAll("-+", "-")
+                .replaceAll("^-|-$", "");
+        return slug.isEmpty() ? "grammar-" + System.currentTimeMillis() : slug;
+    }
+
     @Transactional(readOnly = true)
     public List<GrammarSetDTO> getAllGrammarSets() {
         List<GrammarSet> list = grammarSetRepository.findAllByIsDelFalse();

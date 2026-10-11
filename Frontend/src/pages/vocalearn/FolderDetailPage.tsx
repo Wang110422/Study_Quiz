@@ -1,5 +1,5 @@
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { ArrowLeft, BookOpen, Plus, Loader2, RefreshCw as CloudSync, Trash2 } from 'lucide-react';
+import { ArrowLeft, BookOpen, Plus, Loader2, RefreshCw as CloudSync, Trash2, Folder } from 'lucide-react';
 import VocaHeader from '../../components/vocalearn/layout/VocaHeader';
 import VocaSidebar from '../../components/vocalearn/layout/VocaSidebar';
 import useFolderDetail from '../../hooks/useFolderDetail';
@@ -13,7 +13,6 @@ const FolderDetailPage = () => {
 
     const displayTitle = folder?.name || folderSlug || 'Chi tiết thư mục';
     const displayDesc = folder?.description || 'Các bộ từ vựng thuộc thư mục này';
-    const displayIcon = folder?.icon || '📁';
 
     // Nguồn trang trước đó (nếu mở từ Nhóm học hoặc Lớp học)
     const backTarget = location.state?.from || '/folders';
@@ -21,9 +20,7 @@ const FolderDetailPage = () => {
 
     return (
         <div className="min-h-screen bg-slate-50/50 text-slate-900 font-sans flex flex-col select-none">
-            <VocaSidebar />
-
-            <div className="pl-[260px] flex flex-col min-h-screen">
+            <div className="flex flex-col min-h-screen w-full">
                 <VocaHeader />
 
                 <main className="flex-1 p-6 lg:p-8 max-w-[1600px] w-full mx-auto">
@@ -50,8 +47,8 @@ const FolderDetailPage = () => {
                     {/* Folder Banner Header */}
                     <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
                         <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-2xl shrink-0">
-                                {displayIcon}
+                            <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                                <Folder className="w-7 h-7" />
                             </div>
                             <div>
                                 <h1 className="text-xl font-bold text-slate-900">
@@ -133,8 +130,8 @@ const FolderDetailPage = () => {
                                     >
                                         <div>
                                             <div className="flex items-start justify-between mb-3">
-                                                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg font-bold">
-                                                    📚
+                                                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                                                    <BookOpen className="w-5 h-5" />
                                                 </div>
                                                 <button
                                                     type="button"

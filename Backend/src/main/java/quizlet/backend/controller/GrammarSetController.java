@@ -48,4 +48,25 @@ public class GrammarSetController {
         response.setResult(set);
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping
+    public ResponseEntity<APIResponse<GrammarSetDTO>> createGrammarSet(
+            @RequestBody quizlet.backend.dto.req.CreateGrammarSetRequest request,
+            org.springframework.security.core.Authentication authentication
+    ) {
+        if (request.getTitle() == null || request.getTitle().trim().isEmpty()) {
+            APIResponse<GrammarSetDTO> error = new APIResponse<>();
+            error.setStatus(HttpStatus.BAD_REQUEST.value());
+            error.setMessage("Tiêu đề bộ ngữ pháp không được để trống");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        }
+
+        String userEmail = authentication != null ? authentication.getName() : null;
+        GrammarSetDTO created = grammarSetService.createGrammarSet(request, userEmail);
+        APIResponse<GrammarSetDTO> response = new APIResponse<>();
+        response.setStatus(HttpStatus.CREATED.value());
+        response.setMessage("Tạo bộ ngữ pháp thành công");
+        response.setResult(created);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
 }

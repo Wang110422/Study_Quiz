@@ -7,13 +7,13 @@ import {
   CheckCircle2,
   Loader2,
   SlidersHorizontal,
+  PenTool,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import VocaHeader from '@/components/vocalearn/layout/VocaHeader';
 import VocaSidebar from '@/components/vocalearn/layout/VocaSidebar';
 import { SectionTitle } from '@/components/app/PageHeader';
 import {
-  EmojiTile,
   Pill,
   BtnPrimary,
   BtnOutline,
@@ -30,16 +30,15 @@ type TabKey = 'listening' | 'speaking' | 'reading' | 'writing' | 'vocab' | 'gram
 interface TabItem {
   id: TabKey;
   name: string;
-  emoji: string;
 }
 
 const tabs: TabItem[] = [
-  { id: 'listening', name: 'Nghe', emoji: '🎧' },
-  { id: 'speaking', name: 'Nói', emoji: '🗣️' },
-  { id: 'reading', name: 'Đọc', emoji: '📖' },
-  { id: 'writing', name: 'Viết', emoji: '✍️' },
-  { id: 'vocab', name: 'Từ vựng', emoji: '📚' },
-  { id: 'grammar', name: 'Ngữ pháp', emoji: '📐' },
+  { id: 'listening', name: 'Nghe' },
+  { id: 'speaking', name: 'Nói' },
+  { id: 'reading', name: 'Đọc' },
+  { id: 'writing', name: 'Viết' },
+  { id: 'vocab', name: 'Từ vựng' },
+  { id: 'grammar', name: 'Ngữ pháp' },
 ];
 
 const VocaLessonsPage = () => {
@@ -127,11 +126,8 @@ const VocaLessonsPage = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans flex flex-col select-none pb-20">
-      {/* Sidebar cố định bên trái */}
-      <VocaSidebar />
-
       {/* Main Wrapper */}
-      <div className="pl-[260px] flex flex-col min-h-screen">
+      <div className="flex flex-col min-h-screen w-full">
         {/* Top Header */}
         <VocaHeader />
 
@@ -167,7 +163,7 @@ const VocaLessonsPage = () => {
                 onClick={() => setTab(t.id)}
                 className="cursor-pointer"
               >
-                <span>{t.emoji}</span> {t.name}
+                {t.name}
               </TabPill>
             ))}
           </div>
@@ -223,7 +219,9 @@ const VocaLessonsPage = () => {
                           className="surface-card flex flex-col gap-3.5 p-6 rounded-3xl border border-border hover:border-primary/40 hover:shadow-xs transition group"
                         >
                           <div className="flex items-start gap-3">
-                            <EmojiTile>📚</EmojiTile>
+                            <div className="flex h-11 w-11 flex-none items-center justify-center rounded-2xl bg-blue-50 border border-blue-100 text-blue-600">
+                              <Layers className="h-5 w-5" />
+                            </div>
                             <div className="min-w-0 flex-1">
                               <h3 className="font-display text-base font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1">
                                 {s.titleName || `Bộ từ vựng #${s.id}`}
@@ -272,7 +270,9 @@ const VocaLessonsPage = () => {
                         className="surface-card flex flex-col gap-3.5 p-6 rounded-3xl border border-border hover:border-primary/40 hover:shadow-xs transition group"
                       >
                         <div className="flex items-start gap-3">
-                          <EmojiTile>{s.emoji || '📐'}</EmojiTile>
+                          <div className="flex h-11 w-11 flex-none items-center justify-center rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600">
+                            <PenTool className="h-5 w-5" />
+                          </div>
                           <div className="min-w-0 flex-1">
                             <h3 className="font-display text-base font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1">
                               {s.title}

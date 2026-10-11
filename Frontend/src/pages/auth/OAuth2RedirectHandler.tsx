@@ -20,7 +20,7 @@ const OAuth2RedirectHandler = () => {
         // Frontend chỉ cần fetchUser để lấy thông tin tài khoản và điều hướng
         fetchUser().then((user) => {
             if (user) {
-                navigate('/dashboard', { replace: true });
+                navigate('/lessons', { replace: true });
             } else {
                 navigate('/login?error=auth_failed', { replace: true });
             }

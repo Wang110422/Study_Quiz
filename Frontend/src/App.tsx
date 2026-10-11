@@ -6,7 +6,6 @@ import OAuth2RedirectHandler from './pages/auth/OAuth2RedirectHandler';
 import ProtectedRoute from './components/ProtectedRoute';
 
 // VocaLearn Pages
-import VocaDashboardPage from './pages/vocalearn/VocaDashboardPage';
 import VocaClassesPage from './pages/vocalearn/VocaClassesPage';
 import VocaFoldersPage from './pages/vocalearn/VocaFoldersPage';
 import FolderDetailPage from './pages/vocalearn/FolderDetailPage';
@@ -22,6 +21,8 @@ import VocaLessonsPage from './pages/vocalearn/VocaLessonsPage';
 import ExamPracticeRoomPage from './pages/vocalearn/ExamPracticeRoomPage';
 import MockTestOverviewPage from './pages/vocalearn/MockTestOverviewPage';
 import MockExamRoomPage from './pages/vocalearn/MockExamRoomPage';
+import VocaLeaderboardPage from './pages/vocalearn/VocaLeaderboardPage';
+import MarketingPage from './pages/landing/LandingPage';
 import { AuthProvider } from './store';
 
 // Dedicated Study Mode Pages (Quizlet Style)
@@ -37,13 +38,14 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
+          {/* Public Landing Page */}
+          <Route path="/" element={<MarketingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/oauth2/redirect" element={<OAuth2RedirectHandler />} />
 
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
-            <Route path="/" element={<VocaDashboardPage />} />
-            <Route path="/dashboard" element={<VocaDashboardPage />} />
+            <Route path="/dashboard" element={<Navigate to="/lessons" replace />} />
             <Route path="/classes" element={<VocaClassesPage />} />
             <Route path="/classes/:classId" element={<GroupDetailPage />} />
             <Route path="/study-groups" element={<VocaClassesPage />} />
@@ -90,6 +92,8 @@ function App() {
             <Route path="/mock-test/:examId" element={<MockTestOverviewPage />} />
             <Route path="/mock-test/:examId/overview" element={<MockTestOverviewPage />} />
             <Route path="/mock-test/:examId/room" element={<MockExamRoomPage />} />
+            <Route path="/leaderboard" element={<VocaLeaderboardPage />} />
+            <Route path="/ranking" element={<VocaLeaderboardPage />} />
             <Route path="/scan" element={<VocaScanDocumentPage />} />
             <Route path="/profile" element={<VocaProfilePage />} />
             <Route path="/trash" element={<VocaTrashPage />} />

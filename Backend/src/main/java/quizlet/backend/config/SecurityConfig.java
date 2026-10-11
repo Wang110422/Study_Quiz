@@ -72,7 +72,7 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 // 5. Phân quyen người dùng ví dụ student - api/student , teacher - api/teacher
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/api/auth/**", "/oauth2/**", "/login/oauth2/**", "/error").permitAll()
+                        .requestMatchers("/", "/api/auth/**", "/oauth2/**", "/login/oauth2/**", "/error", "/api/leaderboard").permitAll()
                         .anyRequest().authenticated()
                 );
         return http.build();

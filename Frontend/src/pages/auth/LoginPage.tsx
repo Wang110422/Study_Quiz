@@ -9,6 +9,8 @@ import {
     Loader2,
     AlertCircle,
     CheckCircle2,
+    GraduationCap,
+    School,
 } from 'lucide-react';
 import AuthService from '../../services/authService';
 import { useAuthStore } from '../../store';
@@ -45,7 +47,7 @@ const LoginPage = () => {
                 await AuthService.register({ email, password, firstName, lastName, role });
             }
             await fetchUser();
-            navigate('/dashboard');
+            navigate('/lessons');
         } catch (err: any) {
             const msg = err?.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại!';
             setErrorMsg(msg);
@@ -183,7 +185,8 @@ const LoginPage = () => {
                                                 : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                                                 }`}
                                         >
-                                            <span>🎓 Học sinh / Sinh viên</span>
+                                            <GraduationCap className="w-4 h-4" />
+                                            <span>Học sinh / Sinh viên</span>
                                         </button>
                                         <button
                                             type="button"
@@ -193,7 +196,8 @@ const LoginPage = () => {
                                                 : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                                                 }`}
                                         >
-                                            <span>🏫 Giáo viên</span>
+                                            <School className="w-4 h-4" />
+                                            <span>Giáo viên</span>
                                         </button>
                                     </div>
                                 </div>

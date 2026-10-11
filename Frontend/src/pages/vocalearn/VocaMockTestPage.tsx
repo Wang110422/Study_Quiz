@@ -11,13 +11,13 @@ import {
   Loader2,
   CheckCircle,
   SlidersHorizontal,
+  Bot,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import VocaHeader from '@/components/vocalearn/layout/VocaHeader';
 import VocaSidebar from '@/components/vocalearn/layout/VocaSidebar';
 import { SectionTitle } from '@/components/app/PageHeader';
 import {
-  EmojiTile,
   Progress,
   Pill,
   BtnPrimary,
@@ -141,11 +141,8 @@ const VocaMockTestPage = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans flex flex-col select-none pb-20">
-      {/* Sidebar cố định bên trái */}
-      <VocaSidebar />
-
       {/* Main Wrapper */}
-      <div className="pl-[260px] flex flex-col min-h-screen">
+      <div className="flex flex-col min-h-screen w-full">
         {/* Top Header */}
         <VocaHeader />
 
@@ -174,7 +171,9 @@ const VocaMockTestPage = () => {
 
           {/* 2. Banner Nhận xét AI sau bài thi gần nhất */}
           <div className="surface-card flex flex-wrap items-center gap-4 bg-primary-soft p-5 rounded-3xl border border-primary/15 shadow-2xs">
-            <EmojiTile>🤖</EmojiTile>
+            <div className="flex h-11 w-11 flex-none items-center justify-center rounded-2xl bg-blue-50 border border-blue-100 text-blue-600">
+              <Bot className="h-6 w-6" />
+            </div>
             <div className="min-w-0 flex-1">
               <h3 className="font-bold text-foreground text-sm">
                 Nhận xét từ AI sau bài thi gần nhất {selectedExam ? `(${selectedExam.title})` : ''}

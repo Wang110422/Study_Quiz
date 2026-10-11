@@ -1,5 +1,6 @@
 package quizlet.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -8,7 +9,9 @@ import quizlet.backend.enums.ExamFormat;
 import quizlet.backend.enums.ExamType;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Data
 @Entity
@@ -48,4 +51,10 @@ public class Exam {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private User user;
+
+    @ManyToMany(mappedBy = "exams")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @JsonIgnore
+    private Set<StudyTip> studyTips = new HashSet<>();
 }

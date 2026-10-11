@@ -40,6 +40,10 @@ public class RoadmapService {
     @Autowired
     private ExamRepository examRepository;
 
+    @Autowired
+    @org.springframework.context.annotation.Lazy
+    private UserStreakService userStreakService;
+
     public List<RoadmapDTO> getAllRoadmaps(User user) {
         List<Roadmap> roadmaps = roadmapRepository.findAllByOrderByIdAsc();
         return roadmaps.stream()
@@ -204,7 +208,16 @@ public class RoadmapService {
             progress.setCompletedAt(LocalDate.now());
         }
 
-        return userTaskProgressRepository.save(progress);
+        UserTaskProgress saved = userTaskProgressRepository.save(progress);
+
+        // Tự động ghi nhận hoạt động học và tăng streak của ngày hôm nay
+        if (userStreakService != null) {
+            try {
+                userStreakService.recordActivity(user);
+            } catch (Exception ignored) {}
+        }
+
+        return saved;
     }
 
     public UserTaskProgress getTaskProgress(Long taskId, User user) {

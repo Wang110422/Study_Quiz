@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import VocaHeader from '@/components/vocalearn/layout/VocaHeader';
 import VocaSidebar from '@/components/vocalearn/layout/VocaSidebar';
-import { EmojiTile, Pill } from '@/components/app/ui-bits';
+import { Pill } from '@/components/app/ui-bits';
 import CreateClassOrGroupModal from '@/components/vocalearn/modals/CreateClassOrGroupModal';
 import JoinByCodeModal from '@/components/vocalearn/modals/JoinByCodeModal';
 import { useClassesOrGroups } from '@/hooks/useClassesOrGroups';
@@ -51,11 +51,8 @@ const VocaClassesPage = () => {
 
   return (
     <div className="min-h-screen bg-slate-50/50 text-slate-900 font-sans flex flex-col select-none pb-20">
-      {/* Fixed Left Sidebar */}
-      <VocaSidebar />
-
-      {/* Main Container Offset */}
-      <div className="pl-[260px] flex flex-col min-h-screen">
+      {/* Main Container */}
+      <div className="flex flex-col min-h-screen w-full">
         {/* Top Header */}
         <VocaHeader />
 
@@ -164,7 +161,9 @@ const VocaClassesPage = () => {
                     to={groupLink}
                     className="surface-card flex flex-wrap items-start gap-4 p-5 rounded-2xl transition hover:border-primary/50 hover:shadow-xs block cursor-pointer group"
                   >
-                    <EmojiTile>{'🏫'}</EmojiTile>
+                    <div className="flex h-11 w-11 flex-none items-center justify-center rounded-2xl bg-purple-50 border border-purple-100 text-purple-600">
+                      {isClassesPage ? <GraduationCap className="h-5 w-5" /> : <Users className="h-5 w-5" />}
+                    </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-3">
                         <span className="font-display text-lg font-bold text-primary group-hover:underline">

@@ -28,3 +28,8 @@ ENV/
 *.ipr
 .DS_Store
 Thumbs.db
+
+# AI Folder // AI_Docs
+.agent/
+.docs/
+*.md

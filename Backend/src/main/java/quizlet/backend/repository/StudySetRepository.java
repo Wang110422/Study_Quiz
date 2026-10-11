@@ -24,4 +24,7 @@ public interface StudySetRepository extends JpaRepository<StudySet, Long> {
 
     @Query("SELECT s FROM StudySet s WHERE (s.user.id = :userId OR (s.folder IS NOT NULL AND s.folder.user.id = :userId) OR s.folder IS NULL) AND (s.isDel IS NULL OR s.isDel = false) ORDER BY s.id DESC")
     List<StudySet> findAllByUserIdIncludingIndependent(@Param("userId") Long userId);
+
+    @Query("SELECT COUNT(s) FROM StudySet s WHERE (s.user.id = :userId OR (s.folder IS NOT NULL AND s.folder.user.id = :userId)) AND (s.isDel IS NULL OR s.isDel = false)")
+    Long countByUserId(@Param("userId") Long userId);
 }

@@ -1,4 +1,5 @@
-import { Trophy, Flame } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Trophy, Flame, ChevronRight } from 'lucide-react';
 
 interface LeaderboardUser {
     rank: number;
@@ -27,6 +28,13 @@ const LeaderboardWidget = () => {
                     <Trophy className="w-4 h-4 text-amber-500" />
                     <h3 className="text-sm font-bold text-slate-900">Bảng xếp hạng</h3>
                 </div>
+                <Link
+                    to="/leaderboard"
+                    className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-0.5 transition-colors"
+                >
+                    <span>Xem tất cả</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                </Link>
             </div>
 
             {/* User List */}

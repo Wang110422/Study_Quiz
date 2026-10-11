@@ -129,3 +129,52 @@
   color: var(--color-accent-foreground);
   flex: none;
 }
+
+/* Landing Page Animations & Visuals */
+.hero-grid {
+  background-image: radial-gradient(circle at 1px 1px, var(--color-border) 1.5px, transparent 0);
+  background-size: 28px 28px;
+}
+
+@keyframes scanBeamAnimation {
+  0%, 100% {
+    top: 14%;
+    opacity: 0.7;
+  }
+  50% {
+    top: 76%;
+    opacity: 1;
+  }
+}
+
+.scan-beam {
+  animation: scanBeamAnimation 3s ease-in-out infinite;
+}
+
+.feature-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 340px;
+  border-radius: 1.75rem;
+  padding: 1.5rem;
+}
+
+@keyframes floatBadgeAnimation {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.floating-badge {
+  animation: floatBadgeAnimation 4s ease-in-out infinite;
+}
+
+/* Reset sidebar offset since menu is now horizontal on header */
+.pl-\[260px\] {
+  padding-left: 0 !important;
+}
+

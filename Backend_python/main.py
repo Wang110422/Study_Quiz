@@ -481,7 +481,7 @@ Ví dụ:
                 None,
                 lambda: client.models.generate_content(
                     # model="gemini-3.5-flash",
-                    model="gemini-3.6-flash",
+                    model="gemini-3.5-flash-lite",
                     contents=prompt,
                     config=genai.types.GenerateContentConfig(
                         temperature=0.2,
@@ -716,7 +716,7 @@ Văn bản OCR của trang {page_number}:
             response = await loop.run_in_executor(
                 None,
                 lambda p=SINGLE_PAGE_PROMPT: client.models.generate_content(
-                    model="gemini-3.5-flash",
+                    model="gemini-3.5-flash-lite",
                     contents=p,
                     config=genai.types.GenerateContentConfig(
                         temperature=0.3,

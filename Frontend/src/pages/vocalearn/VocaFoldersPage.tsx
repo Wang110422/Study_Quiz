@@ -12,12 +12,14 @@ import {
     Loader2,
     PenTool,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import VocaHeader from '@/components/vocalearn/layout/VocaHeader';
 import VocaSidebar from '@/components/vocalearn/layout/VocaSidebar';
 import { PageHeader } from '@/components/app/PageHeader';
-import { EmojiTile, Pill } from '@/components/app/ui-bits';
+import { Pill } from '@/components/app/ui-bits';
 import CreateFolderModal from '@/components/vocalearn/modals/CreateFolderModal';
+import CreateLibraryItemModal from '@/components/vocalearn/modals/CreateLibraryItemModal';
+import CreateGrammarSetModal from '@/components/vocalearn/modals/CreateGrammarSetModal';
 import useFolders from '@/hooks/useFolders';
 import studySetService, { type StudySet } from '@/services/studySetService';
 import classGroupService, { type ClassOrGroup } from '@/services/classGroupService';
@@ -31,11 +33,14 @@ const defaultMockGrammarSets: GrammarSetDTO[] = [
 ];
 
 const VocaFoldersPage = () => {
+    const navigate = useNavigate();
     const { role } = useAuthStore();
     const { folders, loading, isSyncing, syncMessage, createFolder, deleteFolder, syncGoogleDrive } = useFolders();
     const [tab, setTab] = useState<'folders' | 'groups' | 'sets' | 'grammar'>('folders');
     const [searchTerm, setSearchTerm] = useState('');
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isCreateHubOpen, setIsCreateHubOpen] = useState(false);
+    const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
+    const [isCreateGrammarModalOpen, setIsCreateGrammarModalOpen] = useState(false);
 
     // Dynamic data for Tab 2, Tab 3 & Tab 4
     const [studySets, setStudySets] = useState<StudySet[]>([]);
@@ -84,11 +89,8 @@ const VocaFoldersPage = () => {
 
     return (
         <div className="min-h-screen bg-background text-foreground font-sans flex flex-col select-none pb-20">
-            {/* Fixed Left Sidebar */}
-            <VocaSidebar />
-
-            {/* Main Container Offset */}
-            <div className="pl-[260px] flex flex-col min-h-screen">
+            {/* Main Container */}
+            <div className="flex flex-col min-h-screen w-full">
                 {/* Top Header */}
                 <VocaHeader />
 
@@ -119,11 +121,11 @@ const VocaFoldersPage = () => {
                             </button>
                             <button
                                 type="button"
-                                onClick={() => setIsCreateModalOpen(true)}
+                                onClick={() => setIsCreateHubOpen(true)}
                                 className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-blue-600 hover:bg-blue-700 px-5 text-sm font-semibold text-white transition shadow-pop cursor-pointer active:scale-95 shrink-0"
                             >
                                 <Plus className="h-4 w-4" />
-                                <span>Tạo Thư mục mới</span>
+                                <span>Tạo</span>
                             </button>
                         </div>
                     </div>
@@ -205,7 +207,7 @@ const VocaFoldersPage = () => {
                                 <div className="surface-card p-10 text-center space-y-3">
                                     <Folder className="w-10 h-10 text-muted-foreground mx-auto" />
                                     <h3 className="text-sm font-bold text-foreground">Bạn chưa tạo thư mục nào</h3>
-                                    <p className="text-xs text-muted-foreground">Bấm nút "Tạo Thư mục mới" ở trên để bắt đầu gom nhóm bộ thẻ!</p>
+                                    <p className="text-xs text-muted-foreground">Bấm nút "Tạo" ở trên để bắt đầu gom nhóm bộ thẻ!</p>
                                 </div>
                             ) : (
                                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -220,7 +222,9 @@ const VocaFoldersPage = () => {
                                                 <article key={f.id} className="surface-card p-5 flex flex-col justify-between">
                                                     <div>
                                                         <div className="flex items-start justify-between gap-3">
-                                                            <span className="icon-tile font-display font-bold text-sm">{shortCode}</span>
+                                                            <div className="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-blue-50 border border-blue-100 text-blue-600">
+                                                                <Folder className="h-5 w-5" />
+                                                            </div>
                                                             <button
                                                                 type="button"
                                                                 aria-label="Tùy chọn"
@@ -273,7 +277,9 @@ const VocaFoldersPage = () => {
                                             <article key={g.id} className="surface-card p-5 flex flex-col justify-between">
                                                 <div>
                                                     <div className="flex items-start justify-between gap-3">
-                                                        <EmojiTile>{'🏫'}</EmojiTile>
+                                                        <div className="flex h-11 w-11 flex-none items-center justify-center rounded-2xl bg-purple-50 border border-purple-100 text-purple-600">
+                                                            <Users className="h-5 w-5" />
+                                                        </div>
                                                         <Pill tone="muted">{g.joinCode || 'Mã: ---'}</Pill>
                                                     </div>
                                                     <Link
@@ -328,7 +334,7 @@ const VocaFoldersPage = () => {
                                                             <span className="text-xs text-muted-foreground">{termsCount} thuật ngữ</span>
                                                         </div>
                                                         <h3 className="mt-4 flex items-center gap-2 font-bold text-foreground text-base">
-                                                            <span className="text-lg">📚</span>
+                                                            <Layers className="h-4 w-4 text-primary" />
                                                             {s.titleName}
                                                         </h3>
                                                         <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
@@ -369,7 +375,9 @@ const VocaFoldersPage = () => {
                                             <article key={g.id} className="surface-card p-5 flex flex-col justify-between">
                                                 <div>
                                                     <div className="flex items-start justify-between gap-3">
-                                                        <EmojiTile>{g.emoji || "📐"}</EmojiTile>
+                                                        <div className="flex h-11 w-11 flex-none items-center justify-center rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600">
+                                                            <PenTool className="h-5 w-5" />
+                                                        </div>
                                                         <Pill tone="info">{g.level || "B1 - B2"}</Pill>
                                                     </div>
                                                     <h3 className="mt-4 block font-bold text-foreground text-base hover:text-primary transition">
@@ -398,11 +406,31 @@ const VocaFoldersPage = () => {
                         </div>
                     )}
 
+                    {/* Popup Hub Tạo Mới Ở Giữa Màn Hình (Text-Only, Không Icon) */}
+                    <CreateLibraryItemModal
+                        isOpen={isCreateHubOpen}
+                        onClose={() => setIsCreateHubOpen(false)}
+                        onSelectFolder={() => setIsCreateFolderModalOpen(true)}
+                        onSelectStudySet={() => navigate('/create-set')}
+                        onSelectGrammarSet={() => setIsCreateGrammarModalOpen(true)}
+                    />
+
                     {/* Modal Tạo Thư Mục Mới */}
                     <CreateFolderModal
-                        isOpen={isCreateModalOpen}
-                        onClose={() => setIsCreateModalOpen(false)}
+                        isOpen={isCreateFolderModalOpen}
+                        onClose={() => setIsCreateFolderModalOpen(false)}
                         onCreateFolder={handleCreateFolder}
+                    />
+
+                    {/* Modal Tạo Bộ Ngữ Pháp Mới */}
+                    <CreateGrammarSetModal
+                        isOpen={isCreateGrammarModalOpen}
+                        onClose={() => setIsCreateGrammarModalOpen(false)}
+                        folders={folders}
+                        onSuccess={() => {
+                            fetchExtraData();
+                            setTab('grammar');
+                        }}
                     />
                 </main>
             </div>

@@ -23,6 +23,10 @@ public class UserService {
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
 
+    @Autowired
+    @org.springframework.context.annotation.Lazy
+    private UserStreakService userStreakService;
+
     public Optional<User> getUser(String email) {
         return userRepository.findByEmail(email);
     }
@@ -43,24 +47,28 @@ public class UserService {
             u.setGoogle_access_token(accessToken);
             u.setEmail(email);
             u.setFirstName(name);
+            u.setRole(Role.STUDENT);
         }
         return userRepository.save(u);
     }
 
-    public void upadateRefreshToken(Long userId, String refreshToken) {
-        if (refreshToken == null || refreshToken.isEmpty()) {
-            return;
-        } else {
-            userRepository.findById(userId).ifPresent(user -> {
-                user.setGoogle_refresh_token(refreshToken);
-                userRepository.save(user);
-            });
-        }
+    public void upadateRefreshToken(Long id, String refreshToken) {
+        userRepository.findById(id).ifPresent(user -> {
+            user.setGoogle_refresh_token(refreshToken);
+            userRepository.save(user);
+        });
+    }
+
+    public void updateSheetId(Long id, String sheetId) {
+        userRepository.findById(id).ifPresent(user -> {
+            user.setSheetId(sheetId);
+            userRepository.save(user);
+        });
     }
 
     public AuthResponse register(RegisterRequest request, PasswordEncoder passwordEncoder) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("Email đã được sử dụng!");
+            throw new RuntimeException("Email đã tồn tại!");
         }
 
         User user = new User();
@@ -68,13 +76,17 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());
-        if (request.getRole() != null) {
-            user.setRole(request.getRole());
-        } else {
-            user.setRole(Role.STUDENT);
-        }
+        user.setRole(Role.STUDENT);
 
         User savedUser = userRepository.save(user);
+
+        // Tự động ghi nhận streak khi đăng ký mới
+        if (userStreakService != null) {
+            try {
+                userStreakService.recordActivity(savedUser);
+            } catch (Exception ignored) {}
+        }
+
         String token = jwtTokenProvider.generateToken(savedUser.getId(), savedUser.getEmail());
 
         return AuthResponse.builder()
@@ -93,6 +105,13 @@ public class UserService {
 
         if (user.getPassword() == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new RuntimeException("Email hoặc mật khẩu không chính xác!");
+        }
+
+        // Tự động ghi nhận hoạt động và tăng streak của ngày hôm nay khi đăng nhập
+        if (userStreakService != null) {
+            try {
+                userStreakService.recordActivity(user);
+            } catch (Exception ignored) {}
         }
 
         String token = jwtTokenProvider.generateToken(user.getId(), user.getEmail());

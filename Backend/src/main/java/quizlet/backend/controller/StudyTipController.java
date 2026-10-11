@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import quizlet.backend.dto.ExamDTO;
 import quizlet.backend.dto.StudyTipDTO;
 import quizlet.backend.dto.res.APIResponse;
 import quizlet.backend.enums.ExamType;
@@ -49,6 +50,17 @@ public class StudyTipController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/{id}/exams")
+    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN')")
+    public ResponseEntity<APIResponse<List<ExamDTO>>> getExamsByStudyTipId(@PathVariable Long id) {
+        List<ExamDTO> exams = studyTipService.getExamsByStudyTipId(id);
+        APIResponse<List<ExamDTO>> response = new APIResponse<>();
+        response.setStatus(HttpStatus.OK.value());
+        response.setMessage("Success");
+        response.setResult(exams);
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<StudyTipDTO>> createStudyTip(@RequestBody StudyTipDTO req) {
@@ -85,6 +97,60 @@ public class StudyTipController {
         APIResponse<Void> response = new APIResponse<>();
         response.setStatus(HttpStatus.OK.value());
         response.setMessage("Xóa mẹo học thành công");
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/exams/{examId}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    public ResponseEntity<APIResponse<StudyTipDTO>> addExamToStudyTip(
+            @PathVariable Long id,
+            @PathVariable Long examId) {
+        StudyTipDTO updated = studyTipService.addExamToStudyTip(id, examId);
+        APIResponse<StudyTipDTO> response = new APIResponse<>();
+        if (updated == null) {
+            response.setStatus(HttpStatus.NOT_FOUND.value());
+            response.setMessage("Không tìm thấy mẹo học với ID: " + id);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+        response.setStatus(HttpStatus.OK.value());
+        response.setMessage("Thêm bài thi vào mẹo học thành công");
+        response.setResult(updated);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/exams")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    public ResponseEntity<APIResponse<StudyTipDTO>> addExamsToStudyTip(
+            @PathVariable Long id,
+            @RequestBody List<Long> examIds) {
+        StudyTipDTO updated = studyTipService.addExamsToStudyTip(id, examIds);
+        APIResponse<StudyTipDTO> response = new APIResponse<>();
+        if (updated == null) {
+            response.setStatus(HttpStatus.NOT_FOUND.value());
+            response.setMessage("Không tìm thấy mẹo học với ID: " + id);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+        response.setStatus(HttpStatus.OK.value());
+        response.setMessage("Thêm danh sách bài thi vào mẹo học thành công");
+        response.setResult(updated);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{id}/exams/{examId}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    public ResponseEntity<APIResponse<StudyTipDTO>> removeExamFromStudyTip(
+            @PathVariable Long id,
+            @PathVariable Long examId) {
+        StudyTipDTO updated = studyTipService.removeExamFromStudyTip(id, examId);
+        APIResponse<StudyTipDTO> response = new APIResponse<>();
+        if (updated == null) {
+            response.setStatus(HttpStatus.NOT_FOUND.value());
+            response.setMessage("Không tìm thấy mẹo học với ID: " + id);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+        response.setStatus(HttpStatus.OK.value());
+        response.setMessage("Xóa bài thi khỏi mẹo học thành công");
+        response.setResult(updated);
         return ResponseEntity.ok(response);
     }
 }

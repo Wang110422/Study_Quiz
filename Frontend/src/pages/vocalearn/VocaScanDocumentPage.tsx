@@ -237,11 +237,8 @@ const VocaScanDocumentPage = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans flex flex-col select-none pb-28">
-      {/* Fixed Left Sidebar */}
-      <VocaSidebar />
-
-      {/* Main Container Offset */}
-      <div className="pl-[260px] flex flex-col min-h-screen">
+      {/* Main Container */}
+      <div className="flex flex-col min-h-screen w-full">
         {/* Top Header */}
         <VocaHeader />
 

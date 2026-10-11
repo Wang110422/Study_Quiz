@@ -80,11 +80,8 @@ const MockTestOverviewPage = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans flex flex-col select-none pb-24">
-      {/* Sidebar cố định bên trái */}
-      <VocaSidebar />
-
       {/* Main Wrapper */}
-      <div className="pl-[260px] flex flex-col min-h-screen">
+      <div className="flex flex-col min-h-screen w-full">
         {/* Top Header */}
         <VocaHeader />
 

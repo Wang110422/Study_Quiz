@@ -34,6 +34,10 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     private UserService userService;
 
     @Autowired
+    @org.springframework.context.annotation.Lazy
+    private quizlet.backend.services.UserStreakService userStreakService;
+
+    @Autowired
     private OAuth2AuthorizedClientService authorizedClientService;
 
     @Override
@@ -60,6 +64,14 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         }
 
         User user = userOptional.get();
+
+        // Tự động ghi nhận hoạt động và tăng streak khi đăng nhập Google thành công
+        if (userStreakService != null) {
+            try {
+                userStreakService.recordActivity(user);
+            } catch (Exception ignored) {}
+        }
+
         String token = jwtTokenProvider.generateToken(user.getId(), user.getEmail());
 
         // Set Cookie auth_token cho trình duyệt

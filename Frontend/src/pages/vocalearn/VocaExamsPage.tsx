@@ -22,11 +22,11 @@ import examService, { type ExamDTO } from '@/services/examService';
 
 // Tabs kỹ năng
 const skillTabs = [
-  { id: 'all', name: 'Tất cả kỹ năng', emoji: '🌟', skillType: null },
-  { id: 'listening', name: 'Listening (Nghe)', emoji: '🎧', skillType: 'LISTENING' },
-  { id: 'reading', name: 'Reading (Đọc)', emoji: '📖', skillType: 'READING' },
-  { id: 'writing', name: 'Writing (Viết)', emoji: '✍️', skillType: 'WRITING' },
-  { id: 'speaking', name: 'Speaking (Nói)', emoji: '🗣️', skillType: 'SPEAKING' },
+  { id: 'all', name: 'Tất cả kỹ năng', skillType: null },
+  { id: 'listening', name: 'Listening (Nghe)', skillType: 'LISTENING' },
+  { id: 'reading', name: 'Reading (Đọc)', skillType: 'READING' },
+  { id: 'writing', name: 'Writing (Viết)', skillType: 'WRITING' },
+  { id: 'speaking', name: 'Speaking (Nói)', skillType: 'SPEAKING' },
 ];
 
 const VocaExamsPage = () => {
@@ -85,11 +85,8 @@ const VocaExamsPage = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans flex flex-col select-none pb-20">
-      {/* Sidebar cố định bên trái */}
-      <VocaSidebar />
-
       {/* Main Wrapper */}
-      <div className="pl-[260px] flex flex-col min-h-screen">
+      <div className="flex flex-col min-h-screen w-full">
         {/* Top Header */}
         <VocaHeader />
 
@@ -125,7 +122,7 @@ const VocaExamsPage = () => {
                 onClick={() => setSkill(s.id)}
                 className="cursor-pointer"
               >
-                <span>{s.emoji}</span> {s.name}
+                {s.name}
               </TabPill>
             ))}
           </div>

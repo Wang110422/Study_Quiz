@@ -20,6 +20,13 @@ export interface GrammarSetDTO {
     grammars?: GrammarDTO[];
 }
 
+export interface CreateGrammarSetPayload {
+    title: string;
+    description?: string;
+    level?: string;
+    folderId?: number;
+}
+
 export const grammarService = {
     getAllGrammarSets: async (): Promise<GrammarSetDTO[]> => {
         try {
@@ -39,6 +46,11 @@ export const grammarService = {
             console.error('Lỗi khi lấy chi tiết bộ ngữ pháp:', err);
             return null;
         }
+    },
+
+    createGrammarSet: async (payload: CreateGrammarSetPayload): Promise<GrammarSetDTO | null> => {
+        const response = await api.post('/grammar-sets', payload);
+        return response.data?.result || null;
     },
 };
 

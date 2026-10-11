@@ -13,13 +13,13 @@ import {
   Volume2,
   Star,
   Loader2,
+  PenTool,
 } from "lucide-react";
 import VocaHeader from "@/components/vocalearn/layout/VocaHeader";
 import VocaSidebar from "@/components/vocalearn/layout/VocaSidebar";
 import {
   Progress,
   Pill,
-  EmojiTile,
 } from "@/components/app/ui-bits";
 import { SectionTitle } from "@/components/app/PageHeader";
 import grammarService, { type GrammarSetDTO, type GrammarDTO } from "@/services/grammarService";
@@ -378,11 +378,8 @@ const StudyGrammarPage = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans flex flex-col select-none pb-24">
-      {/* Sidebar cố định bên trái */}
-      <VocaSidebar />
-
       {/* Main Wrapper */}
-      <div className="pl-[260px] flex flex-col min-h-screen">
+      <div className="flex flex-col min-h-screen w-full">
         {/* Top Header */}
         <VocaHeader />
 
@@ -402,7 +399,9 @@ const StudyGrammarPage = () => {
 
             {/* 2. Hero Header */}
             <div className="flex flex-wrap items-start gap-4">
-              <EmojiTile>{set.emoji}</EmojiTile>
+              <div className="flex h-12 w-12 flex-none items-center justify-center rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600">
+                <PenTool className="h-6 w-6" />
+              </div>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-3">
                   <h1 className="text-2xl font-bold sm:text-[28px] font-display text-foreground tracking-tight">

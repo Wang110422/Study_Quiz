@@ -22,7 +22,6 @@ import {
   Pill,
   BtnPrimary,
   BtnOutline,
-  EmojiTile,
 } from "@/components/app/ui-bits";
 import { SectionTitle } from "@/components/app/PageHeader";
 import { useVocal } from "@/hooks/useVocal";
@@ -189,11 +188,8 @@ const FlashCardDetailPage = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans flex flex-col select-none pb-24">
-      {/* Sidebar cố định bên trái */}
-      <VocaSidebar />
-
       {/* Main Wrapper */}
-      <div className="pl-[260px] flex flex-col min-h-screen">
+      <div className="flex flex-col min-h-screen w-full">
         {/* Top Header */}
         <VocaHeader />
 
@@ -213,7 +209,9 @@ const FlashCardDetailPage = () => {
 
             {/* 2. Hero Header */}
             <div className="flex flex-wrap items-start gap-4">
-              <EmojiTile>{setMeta.emoji || "📚"}</EmojiTile>
+              <div className="flex h-12 w-12 flex-none items-center justify-center rounded-2xl bg-blue-50 border border-blue-100 text-blue-600">
+                <Layers className="h-6 w-6" />
+              </div>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-3">
                   <h1 className="text-2xl font-bold sm:text-[28px] font-display text-foreground tracking-tight">

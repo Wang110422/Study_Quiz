@@ -14,6 +14,7 @@ export interface ClassOrGroup {
     membersCount?: number;
     setsCount?: number;
     foldersCount?: number;
+    examsCount?: number;
     members?: { id: number; firstName: string; lastName: string; email: string; role: string }[];
     students?: { id: number; firstName: string; lastName: string; email: string; role: string }[];
     folders?: { id: number; name: string; description: string; icon: string; slug: string; setsCount: number }[];
