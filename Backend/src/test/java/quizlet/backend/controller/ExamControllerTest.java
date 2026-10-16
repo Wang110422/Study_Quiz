@@ -78,6 +78,23 @@ public class ExamControllerTest {
     }
 
     @Test
+    @DisplayName("TC-EXAM-002B: Lấy danh sách bài tập thực hành StudyTip (/drills)")
+    void testGetLessonDrills() throws Exception {
+        ExamDTO dto = ExamDTO.builder()
+                .id(3L)
+                .title("Part 1 Drill 1")
+                .format(ExamFormat.LESSON_DRILL)
+                .build();
+
+        when(examService.getExams(eq(ExamFormat.LESSON_DRILL), any())).thenReturn(List.of(dto));
+
+        mockMvc.perform(get("/api/exams/drills"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.result[0].title").value("Part 1 Drill 1"));
+    }
+
+    @Test
     @DisplayName("TC-EXAM-003: Lấy chi tiết đề thi theo ID hợp lệ")
     void testGetExamDetail_Found() throws Exception {
         ExamDTO dto = ExamDTO.builder()

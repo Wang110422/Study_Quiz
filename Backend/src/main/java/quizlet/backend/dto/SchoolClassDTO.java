@@ -14,12 +14,14 @@ public class SchoolClassDTO {
     private Long teacherId;
     private String teacherName;
     private String teacherEmail;
-    private int studentsCount;
-    private int setsCount;
-    private int foldersCount;
-    private int examsCount;
+    private Integer studentsCount;
+    private Integer setsCount;
+    private Integer foldersCount;
+    private Integer examsCount;
+    private Integer grammarSetsCount;
     private List<UserDTO> students;
     private List<StudySetDTO> studySets;
     private List<FolderDTO> folders;
     private List<ExamDTO> exams;
+    private List<GrammarSetDTO> grammarSets;
 }

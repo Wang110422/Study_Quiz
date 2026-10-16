@@ -81,4 +81,15 @@ public class SchoolClass {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private Set<Exam> exams = new HashSet<>();
+
+    // Danh sách các bộ ngữ pháp gắn vào lớp
+    @ManyToMany
+    @JoinTable(
+            name = "school_class_grammar_sets",
+            joinColumns = @JoinColumn(name = "class_id"),
+            inverseJoinColumns = @JoinColumn(name = "grammar_set_id")
+    )
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private Set<GrammarSet> grammarSets = new HashSet<>();
 }

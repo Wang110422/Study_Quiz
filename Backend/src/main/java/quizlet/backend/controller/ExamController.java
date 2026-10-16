@@ -50,6 +50,12 @@ public class ExamController {
         return getExams(ExamFormat.FULL_TEST, type);
     }
 
+    @GetMapping("/drills")
+    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN')")
+    public ResponseEntity<APIResponse<List<ExamDTO>>> getLessonDrills(@RequestParam(required = false) ExamType type) {
+        return getExams(ExamFormat.LESSON_DRILL, type);
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<ExamDTO>> getExamDetail(@PathVariable Long id) {
@@ -67,10 +73,12 @@ public class ExamController {
     }
 
     // =========================================================================
-    // 🌟 1. CÁC API POST ĐỂ NẠP DỮ LIỆU QUA POSTMAN (EXAM, SECTION, PASSAGE_GROUP, QUESTION)
+    // 🌟 1. CÁC API POST ĐỂ NẠP DỮ LIỆU QUA POSTMAN (EXAM, SECTION, PASSAGE_GROUP,
+    // QUESTION)
     // =========================================================================
 
-    // 1.1 POST /api/exams - Tạo Exam mới (hoặc import cả cây Section/PassageGroup/Question)
+    // 1.1 POST /api/exams - Tạo Exam mới (hoặc import cả cây
+    // Section/PassageGroup/Question)
     @PostMapping
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<ExamDTO>> createExam(@RequestBody ExamDTO dto) {
@@ -85,7 +93,8 @@ public class ExamController {
     // 1.2 POST /api/exams/sections - Tạo Section mới
     @PostMapping("/sections")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
-    public ResponseEntity<APIResponse<quizlet.backend.dto.SectionDTO>> createSection(@RequestBody quizlet.backend.dto.SectionDTO dto) {
+    public ResponseEntity<APIResponse<quizlet.backend.dto.SectionDTO>> createSection(
+            @RequestBody quizlet.backend.dto.SectionDTO dto) {
         quizlet.backend.dto.SectionDTO result = examService.createSection(dto);
         APIResponse<quizlet.backend.dto.SectionDTO> response = new APIResponse<>();
         response.setStatus(HttpStatus.CREATED.value());
@@ -99,8 +108,7 @@ public class ExamController {
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<quizlet.backend.dto.SectionDTO>> createSectionForExam(
             @PathVariable Long examId,
-            @RequestBody quizlet.backend.dto.SectionDTO dto
-    ) {
+            @RequestBody quizlet.backend.dto.SectionDTO dto) {
         dto.setExamId(examId);
         quizlet.backend.dto.SectionDTO result = examService.createSection(dto);
         APIResponse<quizlet.backend.dto.SectionDTO> response = new APIResponse<>();
@@ -113,7 +121,8 @@ public class ExamController {
     // 1.4 POST /api/exams/passage-groups - Tạo PassageGroup mới
     @PostMapping("/passage-groups")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
-    public ResponseEntity<APIResponse<quizlet.backend.dto.PassageGroupDTO>> createPassageGroup(@RequestBody quizlet.backend.dto.PassageGroupDTO dto) {
+    public ResponseEntity<APIResponse<quizlet.backend.dto.PassageGroupDTO>> createPassageGroup(
+            @RequestBody quizlet.backend.dto.PassageGroupDTO dto) {
         quizlet.backend.dto.PassageGroupDTO result = examService.createPassageGroup(dto);
         APIResponse<quizlet.backend.dto.PassageGroupDTO> response = new APIResponse<>();
         response.setStatus(HttpStatus.CREATED.value());
@@ -122,13 +131,13 @@ public class ExamController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    // 1.5 POST /api/exams/sections/{sectionId}/passage-groups - Tạo PassageGroup cho một Section cụ thể
+    // 1.5 POST /api/exams/sections/{sectionId}/passage-groups - Tạo PassageGroup
+    // cho một Section cụ thể
     @PostMapping("/sections/{sectionId}/passage-groups")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<quizlet.backend.dto.PassageGroupDTO>> createPassageGroupForSection(
             @PathVariable Integer sectionId,
-            @RequestBody quizlet.backend.dto.PassageGroupDTO dto
-    ) {
+            @RequestBody quizlet.backend.dto.PassageGroupDTO dto) {
         dto.setSectionId(sectionId);
         quizlet.backend.dto.PassageGroupDTO result = examService.createPassageGroup(dto);
         APIResponse<quizlet.backend.dto.PassageGroupDTO> response = new APIResponse<>();
@@ -141,7 +150,8 @@ public class ExamController {
     // 1.6 POST /api/exams/questions - Tạo Question mới
     @PostMapping("/questions")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
-    public ResponseEntity<APIResponse<quizlet.backend.dto.QuestionDTO>> createQuestion(@RequestBody quizlet.backend.dto.QuestionDTO dto) {
+    public ResponseEntity<APIResponse<quizlet.backend.dto.QuestionDTO>> createQuestion(
+            @RequestBody quizlet.backend.dto.QuestionDTO dto) {
         quizlet.backend.dto.QuestionDTO result = examService.createQuestion(dto);
         APIResponse<quizlet.backend.dto.QuestionDTO> response = new APIResponse<>();
         response.setStatus(HttpStatus.CREATED.value());
@@ -150,13 +160,13 @@ public class ExamController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    // 1.7 POST /api/exams/passage-groups/{groupId}/questions - Tạo Question cho một PassageGroup cụ thể
+    // 1.7 POST /api/exams/passage-groups/{groupId}/questions - Tạo Question cho một
+    // PassageGroup cụ thể
     @PostMapping("/passage-groups/{groupId}/questions")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<quizlet.backend.dto.QuestionDTO>> createQuestionForGroup(
             @PathVariable Long groupId,
-            @RequestBody quizlet.backend.dto.QuestionDTO dto
-    ) {
+            @RequestBody quizlet.backend.dto.QuestionDTO dto) {
         dto.setPassageGroupId(groupId);
         quizlet.backend.dto.QuestionDTO result = examService.createQuestion(dto);
         APIResponse<quizlet.backend.dto.QuestionDTO> response = new APIResponse<>();
@@ -169,7 +179,8 @@ public class ExamController {
     // 1.8 POST /api/exams/questions/bulk - Tạo danh sách câu hỏi hàng loạt
     @PostMapping("/questions/bulk")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
-    public ResponseEntity<APIResponse<List<quizlet.backend.dto.QuestionDTO>>> createQuestionsBulk(@RequestBody List<quizlet.backend.dto.QuestionDTO> dtos) {
+    public ResponseEntity<APIResponse<List<quizlet.backend.dto.QuestionDTO>>> createQuestionsBulk(
+            @RequestBody List<quizlet.backend.dto.QuestionDTO> dtos) {
         List<quizlet.backend.dto.QuestionDTO> result = examService.createQuestionsBulk(dtos);
         APIResponse<List<quizlet.backend.dto.QuestionDTO>> response = new APIResponse<>();
         response.setStatus(HttpStatus.CREATED.value());
@@ -221,13 +232,13 @@ public class ExamController {
         response.setMessage("Xóa câu hỏi Question thành công");
         return ResponseEntity.ok(response);
     }
+
     @PostMapping("/{id}/attempt")
     @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<ExamAttemptDTO>> startAttempt(
             @PathVariable Long id,
             @RequestParam(defaultValue = "REAL_TEST") Mode mode,
-            @AuthenticationPrincipal User user
-    ) {
+            @AuthenticationPrincipal User user) {
         APIResponse<ExamAttemptDTO> response = new APIResponse<>();
         try {
             Long userId = (user != null) ? user.getId() : null;
@@ -249,11 +260,11 @@ public class ExamController {
     @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN')")
     public ResponseEntity<APIResponse<ExamAttemptDTO>> submitAttempt(
             @PathVariable Long attemptId,
-            @RequestBody Map<String, Object> body
-    ) {
+            @RequestBody Map<String, Object> body) {
         APIResponse<ExamAttemptDTO> response = new APIResponse<>();
         try {
-            Double totalScore = body.get("totalScore") != null ? Double.valueOf(body.get("totalScore").toString()) : 0.0;
+            Double totalScore = body.get("totalScore") != null ? Double.valueOf(body.get("totalScore").toString())
+                    : 0.0;
             Integer totalTime = body.get("totalTime") != null ? Integer.valueOf(body.get("totalTime").toString()) : 0;
             String answerDetail = body.get("answerDetail") != null ? body.get("answerDetail").toString() : "{}";
 

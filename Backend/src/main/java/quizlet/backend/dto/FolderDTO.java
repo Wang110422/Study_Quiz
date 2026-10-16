@@ -15,7 +15,7 @@ public class FolderDTO {
     private String sheetUrl;
     private Boolean isDel;
     private LocalDateTime createdAt;
-    private int setsCount;
-    private int termsCount;
+    private Integer setsCount;
+    private Integer termsCount;
     private List<StudySetDTO> studySets;
 }

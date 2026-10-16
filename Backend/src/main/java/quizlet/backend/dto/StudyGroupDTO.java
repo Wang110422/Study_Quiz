@@ -14,9 +14,9 @@ public class StudyGroupDTO {
     private Long creatorId;
     private String creatorName;
     private String creatorEmail;
-    private int membersCount;
-    private int setsCount;
-    private int foldersCount;
+    private Integer membersCount;
+    private Integer setsCount;
+    private Integer foldersCount;
     private List<UserDTO> members;
     private List<StudySetDTO> studySets;
     private List<FolderDTO> folders;

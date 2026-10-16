@@ -47,7 +47,8 @@ public class StudyTipService {
     @Transactional(readOnly = true)
     public StudyTipDTO getStudyTipById(Long id) {
         StudyTip tip = studyTipRepository.findById(id).orElse(null);
-        if (tip == null) return null;
+        if (tip == null)
+            return null;
         return mapToDTO(tip, examRepository.findAll());
     }
 
@@ -90,17 +91,27 @@ public class StudyTipService {
     @Transactional
     public StudyTipDTO updateStudyTip(Long id, StudyTipDTO dto) {
         StudyTip tip = studyTipRepository.findById(id).orElse(null);
-        if (tip == null) return null;
+        if (tip == null)
+            return null;
 
-        if (dto.getExamType() != null) tip.setExamType(dto.getExamType());
-        if (dto.getSkill() != null) tip.setSkill(dto.getSkill());
-        if (dto.getPartName() != null) tip.setPartName(dto.getPartName());
-        if (dto.getFromQuestion() != null) tip.setFromQuestion(dto.getFromQuestion());
-        if (dto.getToQuestion() != null) tip.setToQuestion(dto.getToQuestion());
-        if (dto.getTitle() != null) tip.setTitle(dto.getTitle());
-        if (dto.getContent() != null) tip.setContent(dto.getContent());
-        if (dto.getOrderIndex() != null) tip.setOrderIndex(dto.getOrderIndex());
-        if (dto.getIsActive() != null) tip.setIsActive(dto.getIsActive());
+        if (dto.getExamType() != null)
+            tip.setExamType(dto.getExamType());
+        if (dto.getSkill() != null)
+            tip.setSkill(dto.getSkill());
+        if (dto.getPartName() != null)
+            tip.setPartName(dto.getPartName());
+        if (dto.getFromQuestion() != null)
+            tip.setFromQuestion(dto.getFromQuestion());
+        if (dto.getToQuestion() != null)
+            tip.setToQuestion(dto.getToQuestion());
+        if (dto.getTitle() != null)
+            tip.setTitle(dto.getTitle());
+        if (dto.getContent() != null)
+            tip.setContent(dto.getContent());
+        if (dto.getOrderIndex() != null)
+            tip.setOrderIndex(dto.getOrderIndex());
+        if (dto.getIsActive() != null)
+            tip.setIsActive(dto.getIsActive());
 
         // Cập nhật danh sách đề thi nếu có truyền examIds
         if (dto.getExamIds() != null) {
@@ -115,7 +126,8 @@ public class StudyTipService {
     @Transactional
     public StudyTipDTO addExamToStudyTip(Long tipId, Long examId) {
         StudyTip tip = studyTipRepository.findById(tipId).orElse(null);
-        if (tip == null) return null;
+        if (tip == null)
+            return null;
 
         Exam exam = examRepository.findById(examId).orElse(null);
         if (exam == null) {
@@ -134,7 +146,8 @@ public class StudyTipService {
     @Transactional
     public StudyTipDTO addExamsToStudyTip(Long tipId, List<Long> examIds) {
         StudyTip tip = studyTipRepository.findById(tipId).orElse(null);
-        if (tip == null) return null;
+        if (tip == null)
+            return null;
 
         if (examIds != null && !examIds.isEmpty()) {
             List<Exam> exams = examRepository.findAllById(examIds);
@@ -151,7 +164,8 @@ public class StudyTipService {
     @Transactional
     public StudyTipDTO removeExamFromStudyTip(Long tipId, Long examId) {
         StudyTip tip = studyTipRepository.findById(tipId).orElse(null);
-        if (tip == null) return null;
+        if (tip == null)
+            return null;
 
         if (tip.getExams() != null) {
             tip.getExams().removeIf(exam -> exam.getId().equals(examId));
@@ -220,7 +234,8 @@ public class StudyTipService {
     }
 
     private ExamDTO convertExamToDTO(Exam e) {
-        if (e == null) return null;
+        if (e == null)
+            return null;
         int sCount = e.getSections() != null ? e.getSections().size() : 0;
         return ExamDTO.builder()
                 .id(e.getId())

@@ -29,6 +29,13 @@ public class SchoolClassService {
     @Autowired
     private ExamRepository examRepository;
 
+    @Autowired
+    private GrammarSetRepository grammarSetRepository;
+
+    @Autowired
+    @org.springframework.context.annotation.Lazy
+    private NotificationService notificationService;
+
     // 1. Giáo viên tạo lớp học mới
     public SchoolClassDTO createClass(User teacher, SchoolClassDTO dto) {
         SchoolClass schoolClass = new SchoolClass();
@@ -120,6 +127,29 @@ public class SchoolClassService {
         return convertToDTO(saved);
     }
 
+    // 5c2. Giáo viên thêm Bộ ngữ pháp vào lớp
+    public SchoolClassDTO addGrammarSetToClass(User teacher, Long classId, Long grammarSetId) {
+        SchoolClass schoolClass = schoolClassRepository.findById(classId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học"));
+
+        GrammarSet gs = grammarSetRepository.findById(grammarSetId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bộ ngữ pháp"));
+
+        schoolClass.getGrammarSets().add(gs);
+        SchoolClass saved = schoolClassRepository.save(schoolClass);
+        return convertToDTO(saved);
+    }
+
+    // 5c3. Giáo viên xóa Bộ ngữ pháp khỏi lớp
+    public SchoolClassDTO removeGrammarSetFromClass(User teacher, Long classId, Long grammarSetId) {
+        SchoolClass schoolClass = schoolClassRepository.findById(classId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học"));
+
+        schoolClass.getGrammarSets().removeIf(g -> g.getId().equals(grammarSetId));
+        SchoolClass saved = schoolClassRepository.save(schoolClass);
+        return convertToDTO(saved);
+    }
+
     // 5d. Giáo viên xóa Học sinh khỏi lớp
     public SchoolClassDTO removeStudentFromClass(User teacher, Long classId, Long studentId) {
         SchoolClass schoolClass = schoolClassRepository.findById(classId)
@@ -137,6 +167,34 @@ public class SchoolClassService {
 
         schoolClass.getStudents().add(student);
         SchoolClass saved = schoolClassRepository.save(schoolClass);
+
+        if (notificationService != null) {
+            try {
+                // Thông báo cho sinh viên
+                notificationService.createNotification(
+                        student.getId(),
+                        "Tham gia lớp học thành công",
+                        "Bạn đã gia nhập lớp học '" + schoolClass.getName() + "'.",
+                        quizlet.backend.enums.NotificationType.CLASS_JOINED,
+                        schoolClass.getId(),
+                        "/classes/" + schoolClass.getId()
+                );
+                // Thông báo cho giáo viên
+                if (schoolClass.getTeacher() != null) {
+                    notificationService.createNotification(
+                            schoolClass.getTeacher().getId(),
+                            "Học sinh mới tham gia lớp học",
+                            "Học sinh " + student.getFirstName() + " đã tham gia lớp '" + schoolClass.getName() + "'.",
+                            quizlet.backend.enums.NotificationType.CLASS_JOINED,
+                            schoolClass.getId(),
+                            "/classes/" + schoolClass.getId()
+                    );
+                }
+            } catch (Exception ex) {
+                System.err.println("Lỗi gửi thông báo khi tham gia lớp học: " + ex.getMessage());
+            }
+        }
+
         return convertToDTO(saved);
     }
 
@@ -172,6 +230,7 @@ public class SchoolClassService {
         dto.setSetsCount(c.getStudySets() != null ? c.getStudySets().size() : 0);
         dto.setFoldersCount(c.getFolders() != null ? c.getFolders().size() : 0);
         dto.setExamsCount(c.getExams() != null ? c.getExams().size() : 0);
+        dto.setGrammarSetsCount(c.getGrammarSets() != null ? c.getGrammarSets().size() : 0);
 
         if (c.getStudents() != null) {
             dto.setStudents(c.getStudents().stream().map(u -> {
@@ -222,6 +281,18 @@ public class SchoolClassService {
                 edto.setType(e.getType());
                 edto.setFormat(e.getFormat());
                 return edto;
+            }).collect(Collectors.toList()));
+        }
+
+        if (c.getGrammarSets() != null) {
+            dto.setGrammarSets(c.getGrammarSets().stream().map(g -> {
+                GrammarSetDTO gdto = new GrammarSetDTO();
+                gdto.setId(g.getId());
+                gdto.setTitle(g.getTilte());
+                gdto.setDescription(g.getDescription());
+                gdto.setSlug(g.getSlug());
+                gdto.setGrammarCount(g.getGrammars() != null ? g.getGrammars().size() : 0);
+                return gdto;
             }).collect(Collectors.toList()));
         }
 

@@ -2,5 +2,6 @@ package quizlet.backend.enums;
 
 public enum ExamFormat {
     FULL_TEST,
-    PRACTICE
+    PRACTICE,
+    LESSON_DRILL
 }

@@ -42,13 +42,7 @@ public class UserStreakService {
 
         LocalDate today = LocalDate.now();
         UserStreak streak = userStreakRepository.findByUserId(user.getId())
-                .orElseGet(() -> UserStreak.builder()
-                        .user(user)
-                        .currentStreak(0)
-                        .longestStreak(0)
-                        .totalActiveDays(0)
-                        .vocabLearned(0)
-                        .build());
+                .orElseGet(() -> UserStreak.createDefault(user));
 
         LocalDate lastDate = streak.getLastActivityDate();
 
@@ -59,7 +53,8 @@ public class UserStreakService {
             streak.setTotalActiveDays(1);
             streak.setLastActivityDate(today);
         } else if (lastDate.equals(today)) {
-            // Đã hoạt động hôm nay -> không tăng thêm currentStreak nhưng đảm bảo totalActiveDays hợp lệ
+            // Đã hoạt động hôm nay -> không tăng thêm currentStreak nhưng đảm bảo
+            // totalActiveDays hợp lệ
             if (streak.getTotalActiveDays() == null || streak.getTotalActiveDays() == 0) {
                 streak.setTotalActiveDays(1);
             }
@@ -93,14 +88,17 @@ public class UserStreakService {
      */
     @Transactional
     public UserStreakDTO recordActivityByUserId(Long userId) {
-        if (userId == null) return null;
+        if (userId == null)
+            return null;
         User user = userRepository.findById(userId).orElse(null);
-        if (user == null) return null;
+        if (user == null)
+            return null;
         return recordActivity(user);
     }
 
     /**
-     * Lấy thông tin Streak của User kèm tính toán 7 ngày trong tuần và độ chuyên cần
+     * Lấy thông tin Streak của User kèm tính toán 7 ngày trong tuần và độ chuyên
+     * cần
      */
     @Transactional(readOnly = true)
     public UserStreakDTO getStreakByUserId(Long userId) {
@@ -125,18 +123,14 @@ public class UserStreakService {
      */
     @Transactional
     public UserStreakDTO updateVocabLearned(Long userId, int count, boolean isIncrement) {
-        if (userId == null) return null;
+        if (userId == null)
+            return null;
         User user = userRepository.findById(userId).orElse(null);
-        if (user == null) return null;
+        if (user == null)
+            return null;
 
         UserStreak streak = userStreakRepository.findByUserId(userId)
-                .orElseGet(() -> UserStreak.builder()
-                        .user(user)
-                        .currentStreak(0)
-                        .longestStreak(0)
-                        .totalActiveDays(0)
-                        .vocabLearned(0)
-                        .build());
+                .orElseGet(() -> UserStreak.createDefault(user));
 
         int currentVocab = streak.getVocabLearned() != null ? streak.getVocabLearned() : 0;
         if (isIncrement) {
@@ -162,7 +156,8 @@ public class UserStreakService {
      * Map UserStreak entity sang UserStreakDTO
      */
     public UserStreakDTO mapToDTO(UserStreak streak) {
-        if (streak == null) return getDefaultDTO(null);
+        if (streak == null)
+            return getDefaultDTO(null);
 
         LocalDate today = LocalDate.now();
         LocalDate lastDate = streak.getLastActivityDate();
@@ -176,12 +171,14 @@ public class UserStreakService {
         boolean hasActiveToday = lastDate != null && lastDate.equals(today);
         int totalDays = streak.getTotalActiveDays() != null ? streak.getTotalActiveDays() : (hasActiveToday ? 1 : 0);
         int longest = streak.getLongestStreak() != null ? streak.getLongestStreak() : activeStreak;
-        if (activeStreak > longest) longest = activeStreak;
+        if (activeStreak > longest)
+            longest = activeStreak;
 
         // Tính tỉ lệ chuyên cần (attendance rate)
         double attendanceRate = 94.0;
         if (totalDays > 0) {
-            attendanceRate = Math.min(100.0, Math.round((totalDays * 100.0 / Math.max(totalDays + 2, 1)) * 10.0) / 10.0);
+            attendanceRate = Math.min(100.0,
+                    Math.round((totalDays * 100.0 / Math.max(totalDays + 2, 1)) * 10.0) / 10.0);
         }
 
         // Lịch 7 ngày trong tuần hiện tại (Thứ 2 -> Chủ nhật)
@@ -191,8 +188,7 @@ public class UserStreakService {
         List<String> monthlyDates = calculateMonthlyActiveDates(
                 streak.getUser() != null ? streak.getUser().getId() : null,
                 lastDate,
-                activeStreak
-        );
+                activeStreak);
 
         String userName = streak.getUser() != null
                 ? (streak.getUser().getFirstName() + " " + streak.getUser().getLastName()).trim()
@@ -220,7 +216,8 @@ public class UserStreakService {
         Set<String> activeDates = new TreeSet<>();
         LocalDate today = LocalDate.now();
 
-        // 1. Nếu đang có streak, các ngày liên tiếp từ lastDate lùi lại currentStreak ngày đều active
+        // 1. Nếu đang có streak, các ngày liên tiếp từ lastDate lùi lại currentStreak
+        // ngày đều active
         if (lastDate != null && currentStreak > 0) {
             for (int i = 0; i < currentStreak; i++) {
                 LocalDate streakDay = lastDate.minusDays(i);

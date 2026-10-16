@@ -8,6 +8,7 @@ import quizlet.backend.enums.ExamFormat;
 import quizlet.backend.enums.ExamType;
 import quizlet.backend.enums.Mode;
 import quizlet.backend.enums.SkillType;
+import quizlet.backend.enums.NotificationType;
 import quizlet.backend.model.*;
 import quizlet.backend.repository.ExamAttemptRepository;
 import quizlet.backend.repository.ExamRepository;
@@ -42,6 +43,10 @@ public class ExamService {
     @Autowired
     @org.springframework.context.annotation.Lazy
     private UserStreakService userStreakService;
+
+    @Autowired
+    @org.springframework.context.annotation.Lazy
+    private NotificationService notificationService;
 
     // =========================================================================
     // 🌟 1. CÁC PHƯƠNG THỨC POST ĐỂ THÊM DỮ LIỆU THẬT QUA POSTMAN
@@ -319,6 +324,24 @@ public class ExamService {
         if (attempt.getUser() != null && userStreakService != null) {
             try {
                 userStreakService.recordActivity(attempt.getUser());
+            } catch (Exception ignored) {}
+        }
+
+        // Tự động tạo thông báo khi hoàn thành bài thi
+        if (attempt.getUser() != null && notificationService != null) {
+            try {
+                String examTitle = (exam != null && exam.getTitle() != null) ? exam.getTitle() : "Bài thi";
+                String targetUrl = (exam != null && exam.getFormat() == ExamFormat.FULL_TEST)
+                        ? "/mock-test"
+                        : "/exams";
+                notificationService.createNotification(
+                        attempt.getUser().getId(),
+                        "Hoàn thành bài thi: " + examTitle,
+                        "Bạn đã nộp bài thi thành công với kết quả " + (int) finalCalculatedScore + " điểm.",
+                        NotificationType.EXAM_COMPLETED,
+                        exam != null ? exam.getId() : null,
+                        targetUrl
+                );
             } catch (Exception ignored) {}
         }
 

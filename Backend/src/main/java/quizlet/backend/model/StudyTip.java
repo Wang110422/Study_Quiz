@@ -37,7 +37,7 @@ public class StudyTip {
 
     @Column(name = "to_question")
     private Integer toQuestion;
-    
+
     @Column(name = "title", nullable = false)
     private String title;
 
@@ -65,13 +65,10 @@ public class StudyTip {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    // Quan hệ Many-to-Many với Exam (1 StudyTip có nhiều Exam, 1 Exam có thể thuộc nhiều StudyTip)
+    // Quan hệ Many-to-Many với Exam (1 StudyTip có nhiều Exam, 1 Exam có thể thuộc
+    // nhiều StudyTip)
     @ManyToMany
-    @JoinTable(
-            name = "study_tip_exams",
-            joinColumns = @JoinColumn(name = "study_tip_id"),
-            inverseJoinColumns = @JoinColumn(name = "exam_id")
-    )
+    @JoinTable(name = "study_tip_exams", joinColumns = @JoinColumn(name = "study_tip_id"), inverseJoinColumns = @JoinColumn(name = "exam_id"))
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private Set<Exam> exams = new java.util.HashSet<>();

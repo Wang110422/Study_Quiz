@@ -168,6 +168,40 @@ public class SchoolClassController {
         return ResponseEntity.ok(response);
     }
 
+    // 6c2. Giáo viên thêm Bộ ngữ pháp vào lớp học
+    @PostMapping("/{classId}/grammar-sets/{grammarSetId}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    public ResponseEntity<APIResponse<SchoolClassDTO>> addGrammarSetToClass(
+            @AuthenticationPrincipal User teacher,
+            @PathVariable Long classId,
+            @PathVariable Long grammarSetId
+    ) {
+        APIResponse<SchoolClassDTO> response = new APIResponse<>();
+        SchoolClassDTO updated = schoolClassService.addGrammarSetToClass(teacher, classId, grammarSetId);
+
+        response.setStatus(HttpStatus.OK.value());
+        response.setMessage("Đã thêm Bộ ngữ pháp vào lớp học thành công!");
+        response.setResult(updated);
+        return ResponseEntity.ok(response);
+    }
+
+    // 6c3. Giáo viên gỡ Bộ ngữ pháp khỏi lớp học
+    @DeleteMapping("/{classId}/grammar-sets/{grammarSetId}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    public ResponseEntity<APIResponse<SchoolClassDTO>> removeGrammarSetFromClass(
+            @AuthenticationPrincipal User teacher,
+            @PathVariable Long classId,
+            @PathVariable Long grammarSetId
+    ) {
+        APIResponse<SchoolClassDTO> response = new APIResponse<>();
+        SchoolClassDTO updated = schoolClassService.removeGrammarSetFromClass(teacher, classId, grammarSetId);
+
+        response.setStatus(HttpStatus.OK.value());
+        response.setMessage("Đã gỡ Bộ ngữ pháp khỏi lớp học!");
+        response.setResult(updated);
+        return ResponseEntity.ok(response);
+    }
+
     // 6d. Giáo viên xóa sinh viên khỏi lớp học
     @DeleteMapping("/{classId}/students/{studentId}")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")

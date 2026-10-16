@@ -27,7 +27,7 @@ public class StudyTipDTO {
     private Boolean isActive;
     private Long examId;
     private String cta;
-    private int examsCount;
+    private Integer examsCount;
     private List<ExamDTO> exams;
     private List<Long> examIds;
 }
