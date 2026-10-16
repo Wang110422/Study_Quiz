@@ -1,4 +1,5 @@
 import api from '../config/api';
+import type { ExamDTO } from './examService';
 
 export interface StudyTipDTO {
     id: number;
@@ -14,6 +15,9 @@ export interface StudyTipDTO {
     isActive?: boolean;
     examId?: number;
     cta?: string;
+    examsCount?: number;
+    exams?: ExamDTO[];
+    examIds?: number[];
 }
 
 export const studyTipService = {
@@ -41,6 +45,16 @@ export const studyTipService = {
         } catch (err) {
             console.error(`Lỗi khi lấy study tip với ID ${id}:`, err);
             return null;
+        }
+    },
+
+    getExamsByStudyTipId: async (id: number): Promise<ExamDTO[]> => {
+        try {
+            const response = await api.get(`/study-tips/${id}/exams`);
+            return response.data?.result || [];
+        } catch (err) {
+            console.error(`Lỗi khi lấy danh sách bài thi của study tip ID ${id}:`, err);
+            return [];
         }
     },
 };

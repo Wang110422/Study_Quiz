@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   BookOpenText,
-  Sparkles,
   Layers,
   Play,
   CheckCircle2,
   Loader2,
   SlidersHorizontal,
   PenTool,
+  Plus,
+  GraduationCap,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import VocaHeader from '@/components/vocalearn/layout/VocaHeader';
@@ -23,6 +24,9 @@ import grammarService, { type GrammarSetDTO } from '@/services/grammarService';
 import studySetService, { type StudySet } from '@/services/studySetService';
 import studyTipService, { type StudyTipDTO } from '@/services/studyTipService';
 import examService, { type ExamDTO } from '@/services/examService';
+import { useAuthStore } from '@/store';
+import AssignResourceToClassModal from '@/components/vocalearn/modals/AssignResourceToClassModal';
+import CreateGrammarSetModal from '@/components/vocalearn/modals/CreateGrammarSetModal';
 
 // 6 Tabs chính: Nghe, Nói, Đọc, Viết, Từ vựng, Ngữ pháp
 type TabKey = 'listening' | 'speaking' | 'reading' | 'writing' | 'vocab' | 'grammar';
@@ -43,6 +47,7 @@ const tabs: TabItem[] = [
 
 const VocaLessonsPage = () => {
   const navigate = useNavigate();
+  const { isTeacher } = useAuthStore();
   const [tab, setTab] = useState<TabKey>('listening');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
   const [vocabSets, setVocabSets] = useState<StudySet[]>([]);
@@ -50,6 +55,20 @@ const VocaLessonsPage = () => {
   const [studyTips, setStudyTips] = useState<StudyTipDTO[]>([]);
   const [practiceExams, setPracticeExams] = useState<ExamDTO[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+
+  // Modal quản lý của giáo viên
+  const [isCreateGrammarOpen, setIsCreateGrammarOpen] = useState<boolean>(false);
+  const [assignModal, setAssignModal] = useState<{
+    isOpen: boolean;
+    type: 'studySet' | 'exam';
+    id: number;
+    title: string;
+  }>({
+    isOpen: false,
+    type: 'studySet',
+    id: 0,
+    title: '',
+  });
 
   // Tải dữ liệu thật từ CSDL backend cho từ vựng, ngữ pháp và mẹo học
   useEffect(() => {
@@ -111,12 +130,15 @@ const VocaLessonsPage = () => {
 
       return {
         id: `tip-${tip.id}`,
+        rawId: tip.id,
         title: tip.title,
         partName: tip.partName,
         tips: tipLines,
         cta: tip.cta || `Học mẹo ${tip.partName || 'ngay'}`,
         examId: tip.examId || defaultExamId,
         examType: tip.examType,
+        examsCount: tip.examsCount ?? (tip.exams?.length || 0),
+        exams: tip.exams || [],
       };
     });
   }, [studyTips, typeFilter, defaultExamId]);
@@ -145,12 +167,29 @@ const VocaLessonsPage = () => {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Link to="/exams">
-                <BtnPrimary className="h-11 shadow-pop">
-                  <Sparkles className="h-4 w-4" /> Sang luyện đề
-                </BtnPrimary>
-              </Link>
+            <div className="flex items-center gap-2 flex-wrap">
+              {isTeacher && (
+                <>
+                  {tab === 'grammar' ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsCreateGrammarOpen(true)}
+                      className="h-11 px-4 rounded-2xl bg-primary text-primary-foreground font-bold text-xs shadow-pop hover:bg-primary/90 flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Plus className="h-4 w-4" /> Soạn ngữ pháp
+                    </button>
+                  ) : (
+                    <Link to="/create-set">
+                      <button
+                        type="button"
+                        className="h-11 px-4 rounded-2xl bg-primary text-primary-foreground font-bold text-xs shadow-pop hover:bg-primary/90 flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Plus className="h-4 w-4" /> Tạo bài học
+                      </button>
+                    </Link>
+                  )}
+                </>
+              )}
             </div>
           </div>
 
@@ -239,12 +278,31 @@ const VocaLessonsPage = () => {
                             <Pill tone="info" className="text-[11px]">Hệ thống</Pill>
                           </div>
 
-                          <BtnPrimary
-                            onClick={() => navigate(`/studyset/${s.slug || s.id}`)}
-                            className="mt-auto h-11 w-full rounded-2xl shadow-pop flex items-center justify-center gap-2 cursor-pointer"
-                          >
-                            <Play className="h-4 w-4" /> Học bộ từ này
-                          </BtnPrimary>
+                          <div className="flex items-center gap-2 mt-auto">
+                            <BtnPrimary
+                              onClick={() => navigate(`/studyset/${s.slug || s.id}`)}
+                              className="h-11 flex-1 rounded-2xl shadow-pop flex items-center justify-center gap-2 cursor-pointer"
+                            >
+                              <Play className="h-4 w-4" /> Học bộ từ này
+                            </BtnPrimary>
+                            {isTeacher && (
+                              <button
+                                type="button"
+                                title="Giao bộ từ vựng này vào lớp học"
+                                onClick={() =>
+                                  setAssignModal({
+                                    isOpen: true,
+                                    type: 'studySet',
+                                    id: Number(s.id),
+                                    title: s.titleName || `Bộ từ vựng #${s.id}`,
+                                  })
+                                }
+                                className="h-11 px-3.5 rounded-2xl border border-border bg-card hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center cursor-pointer transition-colors"
+                              >
+                                <GraduationCap className="h-4 w-4 text-primary" />
+                              </button>
+                            )}
+                          </div>
                         </article>
                       );
                     })}
@@ -322,10 +380,15 @@ const VocaLessonsPage = () => {
                     className="overflow-hidden rounded-3xl border border-border bg-card shadow-2xs flex flex-col hover:border-primary/30 transition group"
                   >
                     <div className="bg-primary px-6 py-5 text-primary-foreground">
-                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
                         {g.partName && (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/20 text-white backdrop-blur-xs">
                             {g.partName}
+                          </span>
+                        )}
+                        {g.examsCount > 0 && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-400/30 text-white backdrop-blur-xs border border-emerald-300/40">
+                            🎯 {g.examsCount} bài drill
                           </span>
                         )}
                         {g.examType && (
@@ -351,12 +414,12 @@ const VocaLessonsPage = () => {
                       </div>
 
                       <div className="pt-3">
-                        {/* Khi bấm vào nút học mẹo -> mở phòng làm bài không tính thời gian */}
+                        {/* Khi bấm vào nút học mẹo -> mở trang chuyên đề chứa danh sách bài drill */}
                         <BtnOutline
-                          onClick={() => navigate(`/exams/${g.examId}/practice?mode=lesson&unlimited=true`)}
+                          onClick={() => navigate(`/lessons/${g.rawId}`)}
                           className="h-11 w-full !border-primary !text-primary hover:!bg-primary hover:!text-primary-foreground flex items-center justify-center gap-2 text-xs font-bold rounded-2xl cursor-pointer transition-colors shadow-2xs"
                         >
-                          <BookOpenText className="h-4 w-4" /> {g.cta}
+                          <BookOpenText className="h-4 w-4" /> {g.cta} {g.examsCount > 0 ? `(${g.examsCount} bài tập)` : ''}
                         </BtnOutline>
                       </div>
                     </div>
@@ -373,6 +436,26 @@ const VocaLessonsPage = () => {
           )}
         </main>
       </div>
+
+      {/* Modal soạn bộ ngữ pháp mới */}
+      <CreateGrammarSetModal
+        isOpen={isCreateGrammarOpen}
+        onClose={() => setIsCreateGrammarOpen(false)}
+        onSuccess={() => {
+          setIsCreateGrammarOpen(false);
+          // Tải lại danh sách ngữ pháp
+          grammarService.getAllGrammarSets().then((res) => setGrammarSets(res || []));
+        }}
+      />
+
+      {/* Modal giao bài học vào lớp */}
+      <AssignResourceToClassModal
+        isOpen={assignModal.isOpen}
+        onClose={() => setAssignModal((prev) => ({ ...prev, isOpen: false }))}
+        resourceType={assignModal.type}
+        resourceId={assignModal.id}
+        resourceTitle={assignModal.title}
+      />
     </div>
   );
 };

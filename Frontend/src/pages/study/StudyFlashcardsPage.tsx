@@ -14,17 +14,19 @@ import { StudyModeHeader } from '@/components/features/study/StudyModeHeader';
 import { Pill, Progress } from '@/components/app/ui-bits';
 import { useVocal } from '@/hooks/useVocal';
 
+interface StudyTerm {
+  id?: number;
+  word: string;
+  vi: string;
+  ipa?: string;
+  pos?: string;
+  cefr?: string;
+  example?: string;
+}
+
 interface StudySetData {
   title: string;
-  terms: {
-    id?: number;
-    word: string;
-    vi: string;
-    ipa?: string;
-    pos?: string;
-    cefr?: string;
-    example?: string;
-  }[];
+  terms: StudyTerm[];
 }
 
 const studySetTitlesMap: Record<string, StudySetData> = {
@@ -82,7 +84,7 @@ const StudyFlashcardsPage = () => {
   }, [vocabularyList, setMeta.terms]);
 
   const basePath = folderSlug && slug ? `/folders/${folderSlug}/${slug}` : `/studyset/${slug || 'tieng-anh-du-lich'}`;
-  const card = words[currentCardIndex] || words[0] || { word: '...', vi: '...', ipa: '', pos: '', cefr: '', example: '' };
+  const card: StudyTerm = words[currentCardIndex] || words[0] || { word: '...', vi: '...', ipa: '', pos: '', cefr: '', example: '' };
 
   const handleNextCard = () => {
     setFlipped(false);
@@ -142,7 +144,7 @@ const StudyFlashcardsPage = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentCardIndex, words.length]);
 
-  const isCardStarred = starredTerms.has(card.id || card.word);
+  const isCardStarred = starredTerms.has(card.id ?? card.word);
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans flex flex-col select-none pb-16">
@@ -226,7 +228,7 @@ const StudyFlashcardsPage = () => {
               <button
                 type="button"
                 aria-label="Lưu từ"
-                onClick={() => toggleStar(card.id || card.word)}
+                onClick={() => toggleStar(card.id ?? card.word)}
                 className={`flex h-11 w-11 items-center justify-center rounded-full border border-border transition cursor-pointer shadow-2xs active:scale-95 ${
                   isCardStarred
                     ? 'text-warning bg-warning-soft border-warning/40'

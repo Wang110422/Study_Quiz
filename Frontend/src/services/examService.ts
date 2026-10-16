@@ -38,7 +38,7 @@ export interface ExamDTO {
     totalMinutes: number;
     totalScore: number;
     type?: 'TOEIC' | 'IELTS' | 'TOPIC' | 'APTIS' | string;
-    format?: 'FULL_TEST' | 'PRACTICE' | string;
+    format?: 'FULL_TEST' | 'PRACTICE' | 'LESSON_DRILL' | string;
     primarySkill?: 'LISTENING' | 'READING' | 'WRITING' | 'SPEAKING' | 'GRAMMAR' | 'VOCABULARY' | string;
     sectionCount?: number;
     totalQuestions?: number;
@@ -65,6 +65,17 @@ export const examService = {
             return response.data?.result || [];
         } catch (err) {
             console.error('Lỗi khi lấy danh sách đề luyện tập:', err);
+            return [];
+        }
+    },
+
+    getLessonDrills: async (type?: string): Promise<ExamDTO[]> => {
+        try {
+            const params = type && type !== 'all' ? { type: type.toUpperCase() } : {};
+            const response = await api.get('/exams/drills', { params });
+            return response.data?.result || [];
+        } catch (err) {
+            console.error('Lỗi khi lấy danh sách bài tập thực hành:', err);
             return [];
         }
     },
@@ -123,6 +134,16 @@ export const examService = {
         } catch (err) {
             console.error('Lỗi khi lấy lịch sử làm bài:', err);
             return [];
+        }
+    },
+
+    createExam: async (examData: Partial<ExamDTO>): Promise<ExamDTO | null> => {
+        try {
+            const response = await api.post('/exams', examData);
+            return response.data?.result || null;
+        } catch (err) {
+            console.error('Lỗi khi tạo đề thi mới:', err);
+            throw err;
         }
     },
 };

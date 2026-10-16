@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, CheckCircle2, Award, Sparkles, FileText, Check } from 'lucide-react';
 import { type StudyPathDTO, type StudyPathItemDTO } from '../../../services/studyPathService';
+import { type RoadmapPhaseDTO } from '../../../services/roadmapService';
 import { useAuthStore } from '../../../store';
 
 
@@ -17,25 +18,24 @@ const PathDetailCard = ({ path }: PathDetailCardProps) => {
     const [isFinalExamDone, setIsFinalExamDone] = useState(false);
     const [showFinalModal, setShowFinalModal] = useState(false);
 
-    const items = path.items || [];
+    // Flatten all tasks from all phases into a single list
+    const items: StudyPathItemDTO[] = (path.phases || []).flatMap((phase: RoadmapPhaseDTO) => phase.tasks || []);
     const totalItems = items.length;
-    const completedItems = items.filter((i) => i.isCompleted).length;
+    const completedItems = items.filter((i: StudyPathItemDTO) => i.isCompleted).length;
 
     // Kiểm tra xem tất cả các mốc bài tập đã hoàn thành chưa
     const allMilestonesCompleted = totalItems > 0 && completedItems === totalItems;
     const isPathPassed = allMilestonesCompleted && isFinalExamDone;
 
-    const progressPercent = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+    const progressPercent = path.progressPercent ?? (totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0);
 
-    const handleMilestoneClick = (setSlug: string, itemId: number, targetLearn: number, targetTest: number) => {
+    const handleMilestoneClick = (setSlug: string, itemId: number) => {
         // Truyền pathItemId để lấy và lưu tiến trình trực tiếp từ MySQL Database
         navigate(`/studyset/${setSlug}`, {
             state: {
                 from: '/paths',
                 fromName: 'Lộ trình học',
                 pathItemId: itemId,
-                targetLearnCount: targetLearn,
-                targetTestCount: targetTest,
             },
         });
     };
@@ -66,7 +66,7 @@ const PathDetailCard = ({ path }: PathDetailCardProps) => {
                                         : 'bg-blue-50 border-blue-100 text-blue-600'
                                 }`}
                         >
-                            {isPathPassed ? '🏆' : path.icon || '🎓'}
+                            {isPathPassed ? '🏆' : '🎓'}
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
@@ -83,13 +83,13 @@ const PathDetailCard = ({ path }: PathDetailCardProps) => {
                                 )}
                             </div>
                             <p className="text-xs text-slate-500 font-medium mt-1">
-                                {path.description || 'Lộ trình học bài bản giúp nâng cao trình độ nhanh chóng.'}
+                                Lộ trình học bài bản giúp nâng cao trình độ nhanh chóng. Mục tiêu: {path.targetScore} điểm.
                             </p>
 
                             <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-500 mt-3">
-                                <span>⏱️ {path.durationDays || 30} ngày</span>
+                                <span>⏱️ {path.totalEstimatedDays || 30} ngày</span>
                                 <span>📚 {totalItems} mốc bộ thẻ</span>
-                                <span>⚡ {path.level || 'Trung bình'}</span>
+                                <span>⚡ {path.phases?.length || 0} giai đoạn</span>
                             </div>
                         </div>
                     </div>
@@ -124,24 +124,19 @@ const PathDetailCard = ({ path }: PathDetailCardProps) => {
 
                 <div className="space-y-3">
                     {items.map((item: StudyPathItemDTO) => {
-                        const setSlug = item.studySet?.slug || 'tieng-anh-du-lich';
-                        const termCount = item.studySet?.vocabulariesCount || 45;
-                        const completedLearn = item.completedLearnCount ?? 0;
-                        const completedTest = item.completedTestCount ?? 0;
-                        const targetLearn = item.targetLearnCount ?? 3;
-                        const targetTest = item.targetTestCount ?? 3;
-                        const isCompleted = item.isCompleted || (completedLearn >= targetLearn && completedTest >= targetTest);
+                        const setSlug = item.targetSlug || item.link || 'tieng-anh-du-lich';
+                        const termCount = item.targetItemCount || 0;
+                        const isCompleted = item.isCompleted;
 
                         // Requirement #1: Tác giả sẽ lấy tên của người tạo
                         const creatorName =
-                            item.studySet?.creatorName ||
                             (user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : '') ||
                             'Giáo viên VocaLearn';
 
                         return (
                             <div
                                 key={item.id}
-                                onClick={() => handleMilestoneClick(setSlug, item.id, targetLearn, targetTest)}
+                                onClick={() => handleMilestoneClick(setSlug, item.id)}
                                 className={`p-5 rounded-2xl border transition-all cursor-pointer space-y-3 group relative ${isCompleted
                                         ? 'bg-emerald-50/70 border-emerald-300 hover:border-emerald-500 shadow-xs'
                                         : 'bg-white border-slate-200 hover:border-blue-500 hover:shadow-md'
@@ -156,18 +151,18 @@ const PathDetailCard = ({ path }: PathDetailCardProps) => {
                                                     : 'bg-blue-50 border-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white'
                                                 }`}
                                         >
-                                            #{item.stepOrder}
+                                            #{item.orderIndex}
                                         </div>
                                         <div>
                                             <h4 className="font-extrabold text-slate-900 text-base group-hover:text-blue-600 transition-colors">
                                                 {item.title}{' '}
-                                                {item.studySet && item.studySet.titleName !== item.title && `(${item.studySet.titleName})`}
+                                                {item.targetTitle && item.targetTitle !== item.title && `(${item.targetTitle})`}
                                             </h4>
                                             <p className="text-xs text-slate-400 font-semibold mt-0.5 flex items-center gap-2">
                                                 <span>📚 {termCount} thuật ngữ</span>
                                                 <span className="text-slate-300">·</span>
                                                 <span className={isCompleted ? 'text-emerald-700 font-bold' : 'text-purple-600 font-bold'}>
-                                                    🎯 Học: {completedLearn}/{targetLearn} | Kiểm tra: {completedTest}/{targetTest}
+                                                    🎯 {item.taskType} {item.score != null ? `| Điểm: ${item.score}` : ''}
                                                 </span>
                                             </p>
                                         </div>

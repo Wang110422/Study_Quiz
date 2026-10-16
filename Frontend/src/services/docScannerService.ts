@@ -43,6 +43,25 @@ export interface OcrApiResponse {
     vocabularyByPage?: Record<string, GeminiVocabItem[]>;
 }
 
+export interface ScannedExamQuestion {
+    id: string;
+    questionNumber: number;
+    content: string;
+    options: { key: 'A' | 'B' | 'C' | 'D'; text: string }[];
+    correctAnswer: 'A' | 'B' | 'C' | 'D' | string;
+    explanation?: string;
+    imageUrl?: string;
+    audioTimestamp?: number;
+    selected: boolean;
+    partNumber?: number;
+    partName?: string;
+    passageGroupId?: string;
+    passageTitle?: string;
+    passageText?: string;
+    passageAudioUrl?: string;
+    passageImageUrl?: string;
+}
+
 // Từ điển cơ sở dữ liệu mẫu fallback nếu API không phản hồi
 const CEFR_DICTIONARY: Record<string, { definition: string; level: CEFRLevel; partOfSpeech: string; example: string }> = {
     'apple': { definition: 'Quả táo', level: 'A1', partOfSpeech: 'noun', example: 'I eat a fresh red apple every morning.' },
@@ -354,6 +373,76 @@ A. with B. for C. to D. at`,
         }
 
         return pages;
+    },
+
+    // 6. Hàm bóc tách câu hỏi trắc nghiệm từ văn bản OCR (Dành cho tính năng Quét Bộ Đề)
+    parseExamQuestions: (rawText: string): ScannedExamQuestion[] => {
+        if (!rawText || !rawText.trim()) return [];
+
+        const questions: ScannedExamQuestion[] = [];
+        // Regex nhận diện các câu hỏi: 1. hoặc Question 1: hoặc Câu 1:
+        const regexBlock = /(?:(?:Câu|Question|Bài)\s*)?(\d+)[\.\:\)]\s*([\s\S]*?)(?=(?:(?:(?:Câu|Question|Bài)\s*)?\d+[\.\:\)]\s*)|$)/gi;
+
+        let match;
+        let index = 1;
+        while ((match = regexBlock.exec(rawText)) !== null) {
+            const qNum = parseInt(match[1], 10) || index;
+            const fullBody = match[2].trim();
+            if (!fullBody || fullBody.length < 5) continue;
+
+            // Bóc tách 4 đáp án A, B, C, D
+            const optAMatch = fullBody.match(/(?:^|\s)A[\.\:\)]\s*([^\n\rB-D]+)/i);
+            const optBMatch = fullBody.match(/(?:^|\s)B[\.\:\)]\s*([^\n\rC-D]+)/i);
+            const optCMatch = fullBody.match(/(?:^|\s)C[\.\:\)]\s*([^\n\rD]+)/i);
+            const optDMatch = fullBody.match(/(?:^|\s)D[\.\:\)]\s*([^\n\r]+)/i);
+
+            // Nội dung câu hỏi là phần trước đáp án A
+            let contentText = fullBody;
+            const firstOptIndex = fullBody.search(/(?:^|\s)[A-D][\.\:\)]/i);
+            if (firstOptIndex !== -1) {
+                contentText = fullBody.substring(0, firstOptIndex).trim();
+            }
+
+            // Nhận diện đáp án đúng nếu văn bản có ghi chú
+            const keyMatch = fullBody.match(/(?:Đáp án|Key|Answer|Correct)[\s\:\-]+([A-D])/i);
+            const detectedKey = keyMatch ? (keyMatch[1].toUpperCase() as 'A' | 'B' | 'C' | 'D') : 'A';
+
+            questions.push({
+                id: `q-${qNum}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+                questionNumber: qNum,
+                content: contentText || `Câu hỏi số ${qNum}`,
+                options: [
+                    { key: 'A', text: optAMatch ? optAMatch[1].trim() : 'Lựa chọn A' },
+                    { key: 'B', text: optBMatch ? optBMatch[1].trim() : 'Lựa chọn B' },
+                    { key: 'C', text: optCMatch ? optCMatch[1].trim() : 'Lựa chọn C' },
+                    { key: 'D', text: optDMatch ? optDMatch[1].trim() : 'Lựa chọn D' },
+                ],
+                correctAnswer: detectedKey,
+                explanation: 'Được trích xuất từ tài liệu quét OCR',
+                selected: true,
+            });
+            index++;
+        }
+
+        // Fallback: nếu không match được theo số thứ tự nhưng có text
+        if (questions.length === 0 && rawText.trim().length > 15) {
+            questions.push({
+                id: `q-1-${Date.now()}`,
+                questionNumber: 1,
+                content: rawText.slice(0, 150).trim() + (rawText.length > 150 ? '...' : ''),
+                options: [
+                    { key: 'A', text: 'Đáp án A' },
+                    { key: 'B', text: 'Đáp án B' },
+                    { key: 'C', text: 'Đáp án C' },
+                    { key: 'D', text: 'Đáp án D' },
+                ],
+                correctAnswer: 'A',
+                explanation: 'Được trích xuất từ tài liệu quét',
+                selected: true,
+            });
+        }
+
+        return questions;
     },
 };
 

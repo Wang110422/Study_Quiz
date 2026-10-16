@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   FileText,
-  Play,
   Search,
   Clock,
   FileCheck2,
   ArrowRight,
   Loader2,
   SlidersHorizontal,
+  GraduationCap,
+  Plus,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import VocaHeader from '@/components/vocalearn/layout/VocaHeader';
@@ -16,26 +17,41 @@ import { SectionTitle } from '@/components/app/PageHeader';
 import {
   Pill,
   BtnPrimary,
+  BtnOutline,
   TabPill,
 } from '@/components/app/ui-bits';
 import examService, { type ExamDTO } from '@/services/examService';
+import { useAuthStore } from '@/store';
+import AssignResourceToClassModal from '@/components/vocalearn/modals/AssignResourceToClassModal';
 
 // Tabs kỹ năng
 const skillTabs = [
   { id: 'all', name: 'Tất cả kỹ năng', skillType: null },
-  { id: 'listening', name: 'Listening (Nghe)', skillType: 'LISTENING' },
-  { id: 'reading', name: 'Reading (Đọc)', skillType: 'READING' },
-  { id: 'writing', name: 'Writing (Viết)', skillType: 'WRITING' },
-  { id: 'speaking', name: 'Speaking (Nói)', skillType: 'SPEAKING' },
+  { id: 'listening', name: 'Nghe', skillType: 'LISTENING' },
+  { id: 'reading', name: 'Đọc', skillType: 'READING' },
+  { id: 'writing', name: 'Viết', skillType: 'WRITING' },
+  { id: 'speaking', name: 'Nói', skillType: 'SPEAKING' },
 ];
 
 const VocaExamsPage = () => {
   const navigate = useNavigate();
+  const { isTeacher } = useAuthStore();
   const [skill, setSkill] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
   const [query, setQuery] = useState<string>('');
   const [exams, setExams] = useState<ExamDTO[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+
+  // Modal giao đề thi vào lớp
+  const [assignModal, setAssignModal] = useState<{
+    isOpen: boolean;
+    id: number;
+    title: string;
+  }>({
+    isOpen: false,
+    id: 0,
+    title: '',
+  });
 
   // Tải danh sách đề luyện tập từ CSDL
   useEffect(() => {
@@ -104,12 +120,16 @@ const VocaExamsPage = () => {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Link to="/mock-test">
-                <BtnPrimary className="h-11 shadow-pop">
-                  <Play className="h-4 w-4" /> Vào thi thử
-                </BtnPrimary>
-              </Link>
+            <div className="flex items-center gap-2 flex-wrap">
+              {isTeacher && (
+                <button
+                  type="button"
+                  onClick={() => alert('Chức năng Soạn đề theo kĩ năng đang kích hoạt!')}
+                  className="h-11 px-4 rounded-2xl bg-primary text-primary-foreground font-bold text-xs shadow-pop hover:bg-primary/90 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus className="h-4 w-4" /> Soạn đề theo kĩ năng
+                </button>
+              )}
             </div>
           </div>
 
@@ -220,15 +240,33 @@ const VocaExamsPage = () => {
                       </div>
                     </div>
 
-                    <BtnPrimary
-                      onClick={() => {
-                        const skillParam = activeTab.skillType ? `?skill=${activeTab.skillType}` : '';
-                        navigate(`/exams/${e.id}/practice${skillParam}`);
-                      }}
-                      className="mt-2 h-11 w-full rounded-2xl shadow-pop flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      Luyện đề này <ArrowRight className="h-4 w-4" />
-                    </BtnPrimary>
+                    <div className="flex items-center gap-2 mt-2">
+                      <BtnPrimary
+                        onClick={() => {
+                          const skillParam = activeTab.skillType ? `?skill=${activeTab.skillType}` : '';
+                          navigate(`/exams/${e.id}/practice${skillParam}`);
+                        }}
+                        className="h-11 flex-1 rounded-2xl shadow-pop flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        Luyện đề này <ArrowRight className="h-4 w-4" />
+                      </BtnPrimary>
+                      {isTeacher && (
+                        <button
+                          type="button"
+                          title="Giao đề thi này vào lớp học"
+                          onClick={() =>
+                            setAssignModal({
+                              isOpen: true,
+                              id: Number(e.id),
+                              title: e.title,
+                            })
+                          }
+                          className="h-11 px-3.5 rounded-2xl border border-border bg-card hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center cursor-pointer transition-colors"
+                        >
+                          <GraduationCap className="h-4 w-4 text-primary" />
+                        </button>
+                      )}
+                    </div>
                   </article>
                 );
               })}
@@ -242,6 +280,15 @@ const VocaExamsPage = () => {
           )}
         </main>
       </div>
+
+      {/* Modal giao đề thi vào lớp */}
+      <AssignResourceToClassModal
+        isOpen={assignModal.isOpen}
+        onClose={() => setAssignModal((prev) => ({ ...prev, isOpen: false }))}
+        resourceType="exam"
+        resourceId={assignModal.id}
+        resourceTitle={assignModal.title}
+      />
     </div>
   );
 };

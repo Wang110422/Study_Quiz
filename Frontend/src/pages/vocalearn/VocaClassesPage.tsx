@@ -82,14 +82,17 @@ const VocaClassesPage = () => {
 
             {/* Các nút hành động */}
             <div className="flex items-center gap-3 shrink-0">
-              <button
-                type="button"
-                onClick={() => setIsJoinOpen(true)}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-slate-200 bg-white hover:bg-slate-50 px-5 text-sm font-semibold text-slate-700 transition cursor-pointer shadow-2xs active:scale-95"
-              >
-                <Link2 className="h-4 w-4 text-blue-600" />
-                <span>{isClassesPage ? 'Tham gia bằng mã mời' : 'Tham gia bằng mã'}</span>
-              </button>
+              {/* Giảng viên tạo lớp học nên không cần nút tham gia bằng mã mời */}
+              {(!isTeacher || !isClassesPage) && (
+                <button
+                  type="button"
+                  onClick={() => setIsJoinOpen(true)}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-slate-200 bg-white hover:bg-slate-50 px-5 text-sm font-semibold text-slate-700 transition cursor-pointer shadow-2xs active:scale-95"
+                >
+                  <Link2 className="h-4 w-4 text-blue-600" />
+                  <span>{isClassesPage ? 'Tham gia bằng mã mời' : 'Tham gia bằng mã'}</span>
+                </button>
+              )}
 
               {/* Chỉ hiển thị nút tạo mới nếu là giáo viên trên trang lớp học, hoặc trên trang nhóm học */}
               {(isTeacher || !isClassesPage) && (

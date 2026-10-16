@@ -18,10 +18,12 @@ import GroupDetailPage from './pages/vocalearn/GroupDetailPage';
 import VocaMockTestPage from './pages/vocalearn/VocaMockTestPage';
 import VocaExamsPage from './pages/vocalearn/VocaExamsPage';
 import VocaLessonsPage from './pages/vocalearn/VocaLessonsPage';
+import LessonDrillsPage from './pages/vocalearn/LessonDrillsPage';
 import ExamPracticeRoomPage from './pages/vocalearn/ExamPracticeRoomPage';
 import MockTestOverviewPage from './pages/vocalearn/MockTestOverviewPage';
 import MockExamRoomPage from './pages/vocalearn/MockExamRoomPage';
 import VocaLeaderboardPage from './pages/vocalearn/VocaLeaderboardPage';
+import TeacherAnalyticsPage from './pages/vocalearn/TeacherAnalyticsPage';
 import MarketingPage from './pages/landing/LandingPage';
 import { AuthProvider } from './store';
 
@@ -84,6 +86,7 @@ function App() {
             <Route path="/paths" element={<VocaPathsPage />} />
             <Route path="/roadmap" element={<VocaPathsPage />} />
             <Route path="/lessons" element={<VocaLessonsPage />} />
+            <Route path="/lessons/:tipId" element={<LessonDrillsPage />} />
             <Route path="/practice" element={<VocaLessonsPage />} />
             <Route path="/exams" element={<VocaExamsPage />} />
             <Route path="/exams/:examId/practice" element={<ExamPracticeRoomPage />} />
@@ -94,6 +97,7 @@ function App() {
             <Route path="/mock-test/:examId/room" element={<MockExamRoomPage />} />
             <Route path="/leaderboard" element={<VocaLeaderboardPage />} />
             <Route path="/ranking" element={<VocaLeaderboardPage />} />
+            <Route path="/analytics" element={<TeacherAnalyticsPage />} />
             <Route path="/scan" element={<VocaScanDocumentPage />} />
             <Route path="/profile" element={<VocaProfilePage />} />
             <Route path="/trash" element={<VocaTrashPage />} />

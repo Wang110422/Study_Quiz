@@ -104,6 +104,26 @@ const getToeicDirections = (toeicPart?: string | null, skill?: string): string =
 };
 
 // ==============================================================================
+// 🎯 So khớp đáp án người dùng chọn với đáp án đúng (Case-insensitive & Prefix-tolerant)
+// ==============================================================================
+const isAnswerMatching = (ans1?: string | null, ans2?: string | null): boolean => {
+  if (!ans1 || !ans2) return false;
+  const a = ans1.trim().toLowerCase();
+  const b = ans2.trim().toLowerCase();
+  if (a === b) return true;
+  if (a.startsWith(b) || b.startsWith(a)) return true;
+  if (b.length === 1 && a.includes(`(${b})`)) return true;
+  if (a.length === 1 && b.includes(`(${a})`)) return true;
+
+  // So khớp chữ cái lựa chọn (A), (B), (C), (D)
+  const matchA = a.match(/^[(\[]?([a-d])[)\]]/);
+  const matchB = b.match(/^[(\[]?([a-d])[)\]]/);
+  if (matchA && matchB && matchA[1] === matchB[1]) return true;
+
+  return false;
+};
+
+// ==============================================================================
 // 🎵 Component Trình Phát Audio Hiện Đại
 // ==============================================================================
 interface AudioPlayerProps {
@@ -521,9 +541,7 @@ const ExamPracticeRoomPage = () => {
       if (!userAns || !userAns.trim()) {
         unansweredCount++;
       } else {
-        const uTrim = userAns.trim();
-        const cTrim = (correctAns || '').trim();
-        const isMatch = uTrim ? (uTrim as any).equalsIgnoreCase(cTrim) : (uTrim.toLowerCase() === cTrim.toLowerCase() || uTrim.startsWith(cTrim) || (cTrim.length === 1 && uTrim.includes(`(${cTrim})`)));
+        const isMatch = isAnswerMatching(userAns, correctAns);
         if (isMatch) {
           correctCount++;
           totalScore += qScore;
@@ -766,11 +784,7 @@ const ExamPracticeRoomPage = () => {
                   const q = item.question;
                   const userAns = userAnswers[q.id];
                   const correctAns = q.correctAnswer;
-                  const isCorrect = userAns && (
-                    userAns.toLowerCase() === (correctAns || '').toLowerCase() ||
-                    userAns.startsWith(correctAns || '') ||
-                    (correctAns?.length === 1 && userAns.includes(`(${correctAns})`))
-                  );
+                  const isCorrect = isAnswerMatching(userAns, correctAns);
 
                   let opts: string[] = [];
                   try {
@@ -813,10 +827,7 @@ const ExamPracticeRoomPage = () => {
                       <div className="grid gap-2 sm:grid-cols-2 text-xs">
                         {opts.map((opt) => {
                           const isUserPick = userAns === opt;
-                          const isRightChoice =
-                            opt.toLowerCase() === (correctAns || '').toLowerCase() ||
-                            opt.startsWith(correctAns || '') ||
-                            (correctAns?.length === 1 && opt.includes(`(${correctAns})`));
+                          const isRightChoice = isAnswerMatching(opt, correctAns);
 
                           let style = 'bg-slate-50 border-slate-200 text-slate-700';
                           if (isRightChoice) {

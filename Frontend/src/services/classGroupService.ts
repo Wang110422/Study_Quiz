@@ -6,8 +6,10 @@ export interface ClassOrGroup {
     description: string;
     joinCode: string;
     createdAt: string;
+    teacherId?: number;
     teacherName?: string;
     teacherEmail?: string;
+    creatorId?: number;
     creatorName?: string;
     creatorEmail?: string;
     studentsCount?: number;
@@ -15,10 +17,13 @@ export interface ClassOrGroup {
     setsCount?: number;
     foldersCount?: number;
     examsCount?: number;
+    grammarSetsCount?: number;
     members?: { id: number; firstName: string; lastName: string; email: string; role: string }[];
     students?: { id: number; firstName: string; lastName: string; email: string; role: string }[];
     folders?: { id: number; name: string; description: string; icon: string; slug: string; setsCount: number }[];
     studySets?: { id: number; titleName: string; description: string; slug: string; folderSlug?: string }[];
+    exams?: { id: number; title: string; description?: string; totalMinutes?: number; totalQuestions?: number }[];
+    grammarSets?: { id: number; title?: string; description?: string; slug: string; grammarCount?: number }[];
 }
 
 export const classGroupService = {
@@ -50,6 +55,36 @@ export const classGroupService = {
 
     addFolderToClass: async (classId: number, folderId: number) => {
         const response = await api.post(`/classes/${classId}/folders/${folderId}`);
+        return response.data?.result;
+    },
+
+    addExamToClass: async (classId: number, examId: number) => {
+        const response = await api.post(`/classes/${classId}/exams/${examId}`);
+        return response.data?.result;
+    },
+
+    removeExamFromClass: async (classId: number, examId: number) => {
+        const response = await api.delete(`/classes/${classId}/exams/${examId}`);
+        return response.data?.result;
+    },
+
+    addGrammarSetToClass: async (classId: number, grammarSetId: number) => {
+        const response = await api.post(`/classes/${classId}/grammar-sets/${grammarSetId}`);
+        return response.data?.result;
+    },
+
+    removeGrammarSetFromClass: async (classId: number, grammarSetId: number) => {
+        const response = await api.delete(`/classes/${classId}/grammar-sets/${grammarSetId}`);
+        return response.data?.result;
+    },
+
+    removeStudentFromClass: async (classId: number, studentId: number) => {
+        const response = await api.delete(`/classes/${classId}/students/${studentId}`);
+        return response.data?.result;
+    },
+
+    switchRole: async (role: string) => {
+        const response = await api.post(`/users/switch-role?role=${encodeURIComponent(role)}`);
         return response.data?.result;
     },
 

@@ -6,12 +6,13 @@ import {
   Trophy,
   Sparkles,
   RotateCcw,
-  Clock,
   ArrowRight,
   Loader2,
   CheckCircle,
   SlidersHorizontal,
   Bot,
+  GraduationCap,
+  Plus,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import VocaHeader from '@/components/vocalearn/layout/VocaHeader';
@@ -25,14 +26,28 @@ import {
   TabPill,
 } from '@/components/app/ui-bits';
 import examService, { type ExamDTO, type ExamAttemptDTO } from '@/services/examService';
+import { useAuthStore } from '@/store';
+import AssignResourceToClassModal from '@/components/vocalearn/modals/AssignResourceToClassModal';
 
 const VocaMockTestPage = () => {
   const navigate = useNavigate();
+  const { isTeacher } = useAuthStore();
   const [exams, setExams] = useState<ExamDTO[]>([]);
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
   const [attempts, setAttempts] = useState<ExamAttemptDTO[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedExamId, setSelectedExamId] = useState<number | null>(null);
+
+  // Modal giao đề thi vào lớp
+  const [assignModal, setAssignModal] = useState<{
+    isOpen: boolean;
+    id: number;
+    title: string;
+  }>({
+    isOpen: false,
+    id: 0,
+    title: '',
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -160,12 +175,16 @@ const VocaMockTestPage = () => {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Link to="/exams">
-                <BtnOutline className="h-10 text-xs">
-                  <Clock className="h-4 w-4" /> Sang Luyện đề
-                </BtnOutline>
-              </Link>
+            <div className="flex items-center gap-2 flex-wrap">
+              {isTeacher && (
+                <button
+                  type="button"
+                  onClick={() => alert('Chức năng Soạn thảo đề thi thử Mock Test đang kích hoạt!')}
+                  className="h-10 px-3.5 rounded-2xl bg-primary text-primary-foreground font-bold text-xs shadow-pop hover:bg-primary/90 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus className="h-4 w-4" /> Tạo đề thi thử
+                </button>
+              )}
             </div>
           </div>
 
@@ -273,16 +292,36 @@ const VocaMockTestPage = () => {
                           </div>
                         </div>
 
-                        {/* Nút Bắt đầu thi -> Tạo ngay ExamAttempt và vào thi */}
-                        <BtnPrimary
-                          onClick={(ev) => {
-                            ev.stopPropagation();
-                            handleStartExam(e.id);
-                          }}
-                          className="h-10 text-xs shadow-pop cursor-pointer font-bold"
-                        >
-                          Bắt đầu thi <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                        </BtnPrimary>
+                        {/* Nút Bắt đầu thi & Nút Giao vào lớp cho Giáo viên */}
+                        <div className="flex items-center gap-2">
+                          <BtnPrimary
+                            onClick={(ev) => {
+                              ev.stopPropagation();
+                              handleStartExam(e.id);
+                            }}
+                            className="h-10 text-xs shadow-pop cursor-pointer font-bold"
+                          >
+                            Bắt đầu thi <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                          </BtnPrimary>
+
+                          {isTeacher && (
+                            <button
+                              type="button"
+                              title="Giao đề thi thử này vào lớp học"
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                setAssignModal({
+                                  isOpen: true,
+                                  id: Number(e.id),
+                                  title: e.title,
+                                });
+                              }}
+                              className="h-10 px-3 rounded-2xl border border-border bg-card hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center cursor-pointer transition-colors"
+                            >
+                              <GraduationCap className="h-4 w-4 text-primary" />
+                            </button>
+                          )}
+                        </div>
                       </article>
                     );
                   })}
@@ -384,6 +423,15 @@ const VocaMockTestPage = () => {
           </div>
         </main>
       </div>
+
+      {/* Modal giao đề thi thử vào lớp */}
+      <AssignResourceToClassModal
+        isOpen={assignModal.isOpen}
+        onClose={() => setAssignModal((prev) => ({ ...prev, isOpen: false }))}
+        resourceType="exam"
+        resourceId={assignModal.id}
+        resourceTitle={assignModal.title}
+      />
     </div>
   );
 };

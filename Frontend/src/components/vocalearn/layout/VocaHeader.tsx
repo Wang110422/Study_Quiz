@@ -20,9 +20,12 @@ import {
   ChevronRight,
   Menu,
   X,
+  BarChart3,
 } from 'lucide-react';
 import { useAuthStore } from '../../../store';
 import { classGroupService } from '../../../services/classGroupService';
+import notificationService from '@/services/notificationService';
+import NotificationPopover from '../notifications/NotificationPopover';
 
 interface VocaHeaderProps {
   onSearch?: (query: string) => void;
@@ -36,8 +39,11 @@ const VocaHeader = ({}: VocaHeaderProps) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSwitchingRole, setIsSwitchingRole] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const profileRef = useRef<HTMLDivElement>(null);
+  const notificationRef = useRef<HTMLDivElement>(null);
 
   const fullName = user
     ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Người dùng'
@@ -59,19 +65,31 @@ const VocaHeader = ({}: VocaHeaderProps) => {
     }
   };
 
-  // Menu items (Đã xóa bỏ "Trang chủ" theo yêu cầu)
-  const navItems = [
-    { to: "/lessons", label: "Bài học", icon: BookOpenText },
-    { to: "/exams", label: "Luyện đề", icon: FileText },
-    { to: "/mock-test", label: "Thi thử", icon: Timer },
-    { to: "/leaderboard", label: "Xếp hạng", icon: Trophy },
-    { to: "/classes", label: "Lớp học", icon: GraduationCap },
-    ...(!isTeacher ? [{ to: "/study-groups", label: "Nhóm học", icon: Users }] : []),
-    { to: "/folders", label: "Thư viện", icon: Library },
-    { to: "/paths", label: "Lộ trình", icon: RouteIcon },
-    { to: "/scan", label: "Quét tài liệu", icon: ScanLine },
-    { to: "/trash", label: "Đã xóa", icon: Trash2 },
-  ];
+  // Menu items: Nếu là Giáo viên thì hiển thị chuẩn 9 trang (kèm Thống kê)
+  const navItems = isTeacher
+    ? [
+        { to: "/lessons", label: "Bài học", icon: BookOpenText },
+        { to: "/exams", label: "Luyện đề", icon: FileText },
+        { to: "/mock-test", label: "Thi thử", icon: Timer },
+        { to: "/leaderboard", label: "Xếp hạng", icon: Trophy },
+        { to: "/classes", label: "Lớp học", icon: GraduationCap },
+        { to: "/folders", label: "Thư viện", icon: Library },
+        { to: "/analytics", label: "Thống kê", icon: BarChart3 },
+        { to: "/scan", label: "Quét tài liệu", icon: ScanLine },
+        { to: "/trash", label: "Đã xóa", icon: Trash2 },
+      ]
+    : [
+        { to: "/lessons", label: "Bài học", icon: BookOpenText },
+        { to: "/exams", label: "Luyện đề", icon: FileText },
+        { to: "/mock-test", label: "Thi thử", icon: Timer },
+        { to: "/leaderboard", label: "Xếp hạng", icon: Trophy },
+        { to: "/classes", label: "Lớp học", icon: GraduationCap },
+        { to: "/study-groups", label: "Nhóm học", icon: Users },
+        { to: "/folders", label: "Thư viện", icon: Library },
+        { to: "/paths", label: "Lộ trình", icon: RouteIcon },
+        { to: "/scan", label: "Quét tài liệu", icon: ScanLine },
+        { to: "/trash", label: "Đã xóa", icon: Trash2 },
+      ];
 
   const profileMenuItems = [
     { label: "Hồ sơ cá nhân", icon: User, action: () => navigate("/profile") },
@@ -164,6 +182,39 @@ const VocaHeader = ({}: VocaHeaderProps) => {
     };
   }, [isProfileOpen]);
 
+  // Tải số lượng thông báo chưa đọc khi mount
+  useEffect(() => {
+    const fetchUnread = async () => {
+      try {
+        const count = await notificationService.getUnreadCount();
+        setUnreadCount(count);
+      } catch (err) {
+        console.error('Lỗi khi tải số thông báo chưa đọc:', err);
+      }
+    };
+    fetchUnread();
+  }, []);
+
+  // Đóng notification popover khi click ra ngoài
+  useEffect(() => {
+    function handleNotificationOutside(event: MouseEvent) {
+      if (
+        notificationRef.current &&
+        !notificationRef.current.contains(event.target as Node)
+      ) {
+        setIsNotificationOpen(false);
+      }
+    }
+
+    if (isNotificationOpen) {
+      document.addEventListener("mousedown", handleNotificationOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleNotificationOutside);
+    };
+  }, [isNotificationOpen]);
+
   // Đóng mobile menu khi chuyển route
   useEffect(() => {
     setIsMobileMenuOpen(false);
@@ -210,14 +261,32 @@ const VocaHeader = ({}: VocaHeaderProps) => {
         {/* 3. Phía bên phải: Thông báo, User Avatar */}
         <div className="flex items-center gap-2 sm:gap-3 ml-auto">
           {/* Chuông thông báo */}
-          <button
-            type="button"
-            aria-label="Thông báo"
-            className="relative flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
-          >
-            <Bell className="h-4 w-4" />
-            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive" />
-          </button>
+          <div className="relative" ref={notificationRef}>
+            <button
+              type="button"
+              onClick={() => setIsNotificationOpen((prev) => !prev)}
+              aria-label="Thông báo"
+              className={`relative flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full border transition-colors cursor-pointer ${
+                isNotificationOpen
+                  ? "border-primary bg-muted text-foreground"
+                  : "border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
+            >
+              <Bell className="h-4 w-4" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-extrabold flex items-center justify-center border-2 border-background animate-pulse">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </button>
+
+            {/* Component Thông Báo */}
+            <NotificationPopover
+              isOpen={isNotificationOpen}
+              onClose={() => setIsNotificationOpen(false)}
+              onUnreadChange={(count) => setUnreadCount(count)}
+            />
+          </div>
 
           {/* User Profile Avatar & Dropdown */}
           <div className="relative" ref={profileRef}>
@@ -225,7 +294,7 @@ const VocaHeader = ({}: VocaHeaderProps) => {
               type="button"
               onClick={() => setIsProfileOpen((prev) => !prev)}
               aria-label="Tài khoản cá nhân"
-              className={`flex items-center gap-2 rounded-full p-1 transition-colors cursor-pointer border ${
+              className={`flex items-center gap-1.5 rounded-full p-1 transition-colors cursor-pointer border ${
                 isProfileOpen ? "border-primary bg-muted" : "border-border hover:bg-muted"
               }`}
             >

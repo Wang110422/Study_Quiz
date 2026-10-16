@@ -48,7 +48,7 @@ interface StudentRanking {
 }
 
 export const VocaLeaderboardPage = () => {
-  const { user } = useAuthStore();
+  const { user, isTeacher } = useAuthStore();
   const [mainFilter, setMainFilter] = useState<MainFilter>('exam');
   const [examSubFilter, setExamSubFilter] = useState<ExamSubFilter>('latest_score');
   const [searchQuery, setSearchQuery] = useState('');
@@ -119,10 +119,13 @@ export const VocaLeaderboardPage = () => {
     }
   };
 
-  // Sử dụng 100% dữ liệu từ Database, không chèn dữ liệu ảo
+  // Sử dụng 100% dữ liệu từ Database; nếu là Giáo viên thì loại bỏ chính mình khỏi BXH học sinh
   const allStudents = useMemo(() => {
+    if (isTeacher) {
+      return apiStudents.filter((s) => !s.isCurrentUser);
+    }
     return apiStudents;
-  }, [apiStudents]);
+  }, [apiStudents, isTeacher]);
 
   // Sắp xếp học viên theo Filter người dùng chọn
   const sortedStudents = useMemo(() => {
@@ -155,8 +158,8 @@ export const VocaLeaderboardPage = () => {
     return list;
   }, [allStudents, mainFilter, examSubFilter, searchQuery]);
 
-  // Vị trí của người dùng hiện tại
-  const currentUserRankIndex = sortedStudents.findIndex((s) => s.isCurrentUser);
+  // Vị trí của người dùng hiện tại (Giáo viên không xếp thứ hạng để đảm bảo công bằng cho học sinh)
+  const currentUserRankIndex = !isTeacher ? sortedStudents.findIndex((s) => s.isCurrentUser) : -1;
   const currentUserRank = currentUserRankIndex !== -1 ? currentUserRankIndex + 1 : null;
 
   // Lịch 7 ngày trong tuần động theo ngày thực tế và dữ liệu thật từ Database
@@ -260,17 +263,24 @@ export const VocaLeaderboardPage = () => {
               </div>
               <div>
                 <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                  Hoạt động học tập & Streak
+                  {isTeacher ? 'Giám sát chuyên cần học viên' : 'Hoạt động học tập & Streak'}
                 </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Mỗi khi đăng nhập, học bài, kiểm tra hoặc nộp đề thi sẽ tự động duy trì ngọn lửa chuỗi ngày học!
+                  {isTeacher
+                    ? 'Chế độ giảng viên: Theo dõi chuỗi học tập của học viên (không tính điểm streak cá nhân vào BXH)'
+                    : 'Mỗi khi đăng nhập, học bài, kiểm tra hoặc nộp đề thi sẽ tự động duy trì ngọn lửa chuỗi ngày học!'}
                 </p>
               </div>
             </div>
 
             {/* Trạng thái hôm nay & Nút ghi nhận */}
             <div className="flex items-center gap-3 flex-wrap">
-              {hasActiveToday ? (
+              {isTeacher ? (
+                <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 text-primary px-3.5 py-1.5 rounded-2xl w-fit text-xs font-bold">
+                  <Award className="w-4 h-4" />
+                  <span>Giám sát Giảng viên</span>
+                </div>
+              ) : hasActiveToday ? (
                 <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-4 py-2 rounded-2xl w-fit">
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white text-xs font-bold shadow-xs">
                     <Check className="h-3.5 w-3.5 stroke-[3]" />
