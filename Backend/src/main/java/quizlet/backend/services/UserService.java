@@ -84,7 +84,8 @@ public class UserService {
         if (userStreakService != null) {
             try {
                 userStreakService.recordActivity(savedUser);
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
 
         String token = jwtTokenProvider.generateToken(savedUser.getId(), savedUser.getEmail());
@@ -111,7 +112,8 @@ public class UserService {
         if (userStreakService != null) {
             try {
                 userStreakService.recordActivity(user);
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
 
         String token = jwtTokenProvider.generateToken(user.getId(), user.getEmail());
@@ -124,23 +126,24 @@ public class UserService {
                 .lastName(user.getLastName())
                 .build();
     }
+
     public ResponseCookie generateCookie(String token) {
         return ResponseCookie.from("auth_token", token)
                 .httpOnly(true)
-                .secure(false)
+                .secure(true)
                 .path("/")
                 .maxAge(Duration.ofDays(7))
-                .sameSite("Lax")
+                .sameSite("None")
                 .build();
     }
 
     public ResponseCookie cleanCookie() {
         return ResponseCookie.from("auth_token", "")
                 .httpOnly(true)
-                .secure(false)
+                .secure(true)
                 .path("/")
                 .maxAge(0)
-                .sameSite("Lax")
+                .sameSite("None")
                 .build();
     }
 }
