@@ -11,6 +11,7 @@ export default defineConfig({
     tailwindcss(),
     babel({ presets: [reactCompilerPreset()] })
   ],
+  envDir: '../',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
