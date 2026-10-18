@@ -8,6 +8,9 @@ export interface ExamPartMeta {
   startQuestionNumber: number;
   endQuestionNumber: number;
   description: string;
+  title?: string;
+  totalQuestions?: number;
+  partCode?: string;
 }
 
 // =========================================================================

@@ -36,7 +36,9 @@ import StudyGrammarTestPage from './pages/study/StudyGrammarTestPage';
 import StudyReadingPage from './pages/study/StudyReadingPage';
 
 function App() {
+  console.log("VITE_API_URL hiện tại:", import.meta.env.VITE_API_URL);
   return (
+
     <BrowserRouter>
       <AuthProvider>
         <Routes>

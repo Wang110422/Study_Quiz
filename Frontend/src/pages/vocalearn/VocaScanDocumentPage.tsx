@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import VocaHeader from '@/components/vocalearn/layout/VocaHeader';
 import { Pill } from '@/components/app/ui-bits';
@@ -11,176 +11,19 @@ import docScannerService, {
 } from '@/services/docScannerService';
 import AddToSetModal from '@/components/vocalearn/modals/AddToSetModal';
 import examService from '@/services/examService';
+import { type ExamPartMeta } from '@/services/examScaffoldService';
+import { EXAM_BLUEPRINTS } from '@/constants/examBlueprints';
+import { generateEmptyFullTest } from '@/utils/examGenerator';
 import {
-  type ExamPartMeta,
-  TOEIC_LISTENING_PARTS,
-  TOEIC_READING_PARTS,
-  TOPIK_LISTENING_PARTS,
-  TOPIK_READING_PARTS,
-  generateToeicFullTestQuestions,
-  generateTopikFullTestQuestions,
-  createSinglePracticeTemplate,
-} from '@/services/examScaffoldService';
+  getQuestionRule,
+  validateAllExamQuestions,
+  getDefaultOptionsForAnswerType,
+  type QuestionValidationError,
+} from '@/utils/examBlueprintUtils';
+import { ExamValidationModal } from '@/components/vocalearn/exam/ExamValidationModal';
+import CustomSelect, { type SelectOption } from '@/components/common/CustomSelect';
 
 const CEFR_LEVELS: CEFRLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
-
-// Mẫu câu hỏi khởi tạo phong phú cho giao diện xem trước & chỉnh sửa
-const INITIAL_LISTENING_QUESTIONS: ScannedExamQuestion[] = [
-  {
-    id: 'lis-1',
-    questionNumber: 1,
-    content: 'Look at the picture marked No. 1 in your test book and select the statement that best describes what you see in the picture.',
-    imageUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&q=80',
-    options: [
-      { key: 'A', text: 'She is presenting financial data on a digital whiteboard.' },
-      { key: 'B', text: 'She is packing documents into an office suitcase.' },
-      { key: 'C', text: 'She is drinking a cup of coffee at the cafeteria.' },
-      { key: 'D', text: 'She is repairing a computer screen on the desk.' },
-    ],
-    correctAnswer: 'A',
-    explanation: 'Hình ảnh cho thấy người phụ nữ đang đứng thuyết trình các biểu đồ số liệu trên màn hình bảng số.',
-    selected: true,
-  },
-  {
-    id: 'lis-2',
-    questionNumber: 2,
-    content: 'Where did Mr. Henderson say the quarterly regional meeting will be held?',
-    options: [
-      { key: 'A', text: 'At the downtown convention center in Chicago.' },
-      { key: 'B', text: 'In the third-floor conference room next to the reception.' },
-      { key: 'C', text: 'On Thursday morning at nine o’clock sharp.' },
-      { key: 'D', text: 'Because of budget cuts for overseas travel.' },
-    ],
-    correctAnswer: 'A',
-    explanation: 'Câu hỏi hỏi về địa điểm (Where), đáp án A trả lời chính xác nơi tổ chức.',
-    selected: true,
-  },
-  {
-    id: 'lis-3',
-    questionNumber: 3,
-    content: 'Questions 3 through 5 refer to the following schedule. What time is the keynote speech scheduled to start?',
-    imageUrl: 'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&w=600&q=80',
-    options: [
-      { key: 'A', text: '09:00 AM' },
-      { key: 'B', text: '10:30 AM' },
-      { key: 'C', text: '01:15 PM' },
-      { key: 'D', text: '03:45 PM' },
-    ],
-    correctAnswer: 'B',
-    explanation: 'Dựa trên biểu đồ lịch trình sự kiện đính kèm, Keynote bắt đầu lúc 10:30 AM.',
-    selected: true,
-  },
-];
-
-const INITIAL_READING_QUESTIONS: ScannedExamQuestion[] = [
-  {
-    id: 'read-101',
-    questionNumber: 101,
-    content: 'Customer satisfaction surveys indicate that our clients appreciate the _______ of our technical support team.',
-    options: [
-      { key: 'A', text: 'promptness' },
-      { key: 'B', text: 'prompt' },
-      { key: 'C', text: 'promptly' },
-      { key: 'D', text: 'prompter' },
-    ],
-    correctAnswer: 'A',
-    explanation: 'Sau mạo từ "the" và trước giới từ "of" cần một danh từ (promptness - sự nhanh chóng, kịp thời).',
-    selected: true,
-  },
-  {
-    id: 'read-102',
-    questionNumber: 102,
-    content: 'All lab personnel must wear protective safety goggles _______ entering the chemical testing facility.',
-    options: [
-      { key: 'A', text: 'before' },
-      { key: 'B', text: 'under' },
-      { key: 'C', text: 'between' },
-      { key: 'D', text: 'during' },
-    ],
-    correctAnswer: 'A',
-    explanation: '"before + V-ing" chỉ hành động cần thực hiện trước khi bước vào phòng thử nghiệm.',
-    selected: true,
-  },
-  {
-    id: 'read-103',
-    questionNumber: 103,
-    content: 'Questions 103-104 refer to the following invoice notice. What item has an additional service warranty attached?',
-    imageUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=600&q=80',
-    options: [
-      { key: 'A', text: 'High-speed laser printer model X-200' },
-      { key: 'B', text: 'Ergonomic mesh office chairs' },
-      { key: 'C', text: 'Wireless conference microphone system' },
-      { key: 'D', text: 'Standard A4 printing paper cartons' },
-    ],
-    correctAnswer: 'A',
-    explanation: 'Trong hóa đơn thanh toán, máy in laser X-200 có dòng ghi chú kèm gói bảo hành 2 năm.',
-    selected: true,
-  },
-];
-
-const INITIAL_WRITING_QUESTIONS: ScannedExamQuestion[] = [
-  {
-    id: 'write-201',
-    questionNumber: 1,
-    content: 'Write a response email (approx. 100 words) addressing the customer complaint regarding late package delivery and offer a suitable resolution.',
-    imageUrl: 'https://images.unsplash.com/photo-1586769852044-692d6e3703f0?auto=format&fit=crop&w=600&q=80',
-    options: [
-      { key: 'A', text: 'Tiêu chí 1: Trả lời đầy đủ thông tin xin lỗi và đưa ra chính sách đền bù/giao lại.' },
-      { key: 'B', text: 'Tiêu chí 2: Cấu trúc email công sở chuẩn mực, ngôn phong lịch sự trang trọng.' },
-      { key: 'C', text: 'Tiêu chí 3: Ngữ pháp chính xác, sử dụng từ vựng chuyên ngành vận tải/dịch vụ khách hàng.' },
-      { key: 'D', text: 'Tiêu chí 4: Độ dài đoạn văn đảm bảo từ 80 - 120 từ theo quy định đề thi.' },
-    ],
-    correctAnswer: 'A',
-    explanation: 'Dạng bài viết thư điện tử phản hồi yêu cầu ứng viên giải quyết trọn vẹn các yêu cầu trong đề bài.',
-    selected: true,
-  },
-  {
-    id: 'write-202',
-    questionNumber: 2,
-    content: '[TOPIK 쓰기 54번 / TOEIC Essay]: Trình bày quan điểm của bạn về tầm quan trọng của việc học trực tuyến đối với người đi làm trong thời đại số (200 - 300 từ).',
-    options: [
-      { key: 'A', text: 'Luận điểm: Tính linh hoạt về thời gian và địa điểm học tập.' },
-      { key: 'B', text: 'Luận điểm: Tối ưu chi phí và tiếp cận nguồn tài nguyên quốc tế.' },
-      { key: 'C', text: 'Phản biện: Thách thức về tính kỷ luật tự giác và thiếu tương tác trực tiếp.' },
-      { key: 'D', text: 'Kết luận: Giải pháp kết hợp linh hoạt giữa tự học và thảo luận nhóm.' },
-    ],
-    correctAnswer: 'A',
-    explanation: 'Bài nghị luận đánh giá khả năng tổ chức ý mạch lạc, cấu trúc mở - thân - kết và liên kết câu logic.',
-    selected: true,
-  },
-];
-
-const INITIAL_SPEAKING_QUESTIONS: ScannedExamQuestion[] = [
-  {
-    id: 'speak-301',
-    questionNumber: 1,
-    content: 'Read a text aloud: "Welcome to the annual TechInnovate Summit. Today’s morning sessions will cover cloud architecture, machine learning applications, and cybersecurity best practices. Please ensure your badges are visible at all times."',
-    options: [
-      { key: 'A', text: 'Tiêu chí phát âm: Trọng âm từ, ngữ điệu câu hỏi và câu liệt kê chính xác.' },
-      { key: 'B', text: 'Tiêu chí tốc độ: Đọc trôi chảy, ngắt nghỉ đúng cụm nghĩa trong 45 giây.' },
-      { key: 'C', text: 'Tiêu chí ngữ âm: Phát âm chuẩn các đuôi -s, -ed và các thuật ngữ kỹ thuật.' },
-      { key: 'D', text: 'Tiêu chí âm lượng: Giọng đọc rõ ràng, tự tin, phát âm chuẩn quốc tế.' },
-    ],
-    correctAnswer: 'A',
-    explanation: 'Phần đọc to đoạn văn đánh giá khả năng phát âm chuẩn xác, ngữ điệu tự nhiên và ngắt nghỉ đúng nhịp.',
-    selected: true,
-  },
-  {
-    id: 'speak-302',
-    questionNumber: 2,
-    content: 'Describe a picture: Describe what you see in the photograph in as much detail as possible. You have 45 seconds to prepare and 30 seconds to speak.',
-    imageUrl: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=600&q=80',
-    options: [
-      { key: 'A', text: 'Mô tả tổng quan: Nhóm đồng nghiệp đang thảo luận quanh bàn làm việc hiện đại.' },
-      { key: 'B', text: 'Mô tả chi tiết: Người phụ nữ chỉ vào laptop, đồng nghiệp nam chăm chú lắng nghe.' },
-      { key: 'C', text: 'Mô tả bối cảnh: Văn phòng mở sáng sủa với ánh sáng tự nhiên và sổ ghi chép.' },
-      { key: 'D', text: 'Cảm nghĩ / Dự đoán: Không khí làm việc hợp tác, tích cực và tập trung cao độ.' },
-    ],
-    correctAnswer: 'A',
-    explanation: 'Bài miêu tả tranh cần sắp xếp thứ tự: Từ tổng thể (vị trí, hành động chính) đến chi tiết xung quanh và phỏng đoán.',
-    selected: true,
-  },
-];
 
 const VocaScanDocumentPage = () => {
   const navigate = useNavigate();
@@ -203,8 +46,8 @@ const VocaScanDocumentPage = () => {
   // Nếu là Đề theo kỹ năng hoặc Drill: Chọn 1 kỹ năng duy nhất
   const [singleSkill, setSingleSkill] = useState<'LISTENING' | 'READING' | 'WRITING' | 'SPEAKING'>('READING');
 
-  // Loại kỳ thi chuẩn: Chỉ TOEIC hoặc TOPIK
-  const [examType, setExamType] = useState<'TOEIC' | 'TOPIC'>('TOEIC');
+  // Loại kỳ thi chuẩn: TOEIC, TOPIK I hoặc TOPIK II
+  const [examType, setExamType] = useState<'TOEIC' | 'TOPIK_I' | 'TOPIK_II'>('TOEIC');
 
   // Thông tin cấu hình đề thi
   const [examTitle, setExamTitle] = useState<string>('Đề thi thử TOEIC Format Mới 2026');
@@ -218,14 +61,20 @@ const VocaScanDocumentPage = () => {
   const writingPdfInputRef = useRef<HTMLInputElement>(null);
   const speakingAudioInputRef = useRef<HTMLInputElement>(null);
 
-  const [listeningAudioFile, setListeningAudioFile] = useState<File | null>(null);
-  const [listeningAudioUrl, setListeningAudioUrl] = useState<string>('');
+  const [listeningAudioFiles, setListeningAudioFiles] = useState<File[]>([]);
+  const [activeAudioPlayingIndex, setActiveAudioPlayingIndex] = useState<number | null>(null);
   const [listeningPdfFile, setListeningPdfFile] = useState<File | null>(null);
   const [readingPdfFile, setReadingPdfFile] = useState<File | null>(null);
   const [writingPdfFile, setWritingPdfFile] = useState<File | null>(null);
-  const [writingPromptText, setWritingPromptText] = useState<string>('');
   const [speakingAudioFile, setSpeakingAudioFile] = useState<File | null>(null);
-  const [speakingPromptText, setSpeakingPromptText] = useState<string>('');
+
+  // Dạng bài được chọn trong chế độ DRILL (Đề luyện dạng bài)
+  const [drillPartCode, setDrillPartCode] = useState<string>('');
+
+  // Quản lý tiêu đề tùy chỉnh (Custom Title) và chế độ sửa cho chế độ DRILL
+  const [drillCustomTitles, setDrillCustomTitles] = useState<Record<string, string>>({});
+  const [isEditingDrillTitle, setIsEditingDrillTitle] = useState<boolean>(false);
+  const [tempDrillTitleInput, setTempDrillTitleInput] = useState<string>('');
 
   // Trạng thái phát audio mẫu
   const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
@@ -236,21 +85,33 @@ const VocaScanDocumentPage = () => {
   const [hasScanned, setHasScanned] = useState<boolean>(true); // Mặc định mở Review Studio để xem ngay giao diện
   const [saveSuccessMessage, setSaveSuccessMessage] = useState<string | null>(null);
 
+  // Trạng thái kiểm tra lỗi câu hỏi (CHỈ BÁO ĐỎ KHI BẤM GỬI)
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState<boolean>(false);
+  const [validationErrors, setValidationErrors] = useState<QuestionValidationError[]>([]);
+  const [isValidationModalOpen, setIsValidationModalOpen] = useState<boolean>(false);
+
   // Tab kỹ năng đang xem trong Review Studio: LISTENING, READING, WRITING, SPEAKING
   const [activeReviewSkill, setActiveReviewSkill] = useState<'LISTENING' | 'READING' | 'WRITING' | 'SPEAKING'>('LISTENING');
 
-  // Dữ liệu câu hỏi theo từng kỹ năng (mặc định khởi tạo khuôn Full Test TOEIC 200 câu)
+  // Dữ liệu câu hỏi theo từng kỹ năng: KHỞI TẠO RỖNG SẠCH SẼ THEO BLUEPRINT (KHÔNG MOCK)
   const [listeningQuestions, setListeningQuestions] = useState<ScannedExamQuestion[]>(() =>
-    generateToeicFullTestQuestions('LISTENING')
+    generateEmptyFullTest('TOEIC', 'LISTENING')
   );
   const [readingQuestions, setReadingQuestions] = useState<ScannedExamQuestion[]>(() =>
-    generateToeicFullTestQuestions('READING')
+    generateEmptyFullTest('TOEIC', 'READING')
   );
-  const [writingQuestions, setWritingQuestions] = useState<ScannedExamQuestion[]>(INITIAL_WRITING_QUESTIONS);
-  const [speakingQuestions, setSpeakingQuestions] = useState<ScannedExamQuestion[]>(INITIAL_SPEAKING_QUESTIONS);
+  const [writingQuestions, setWritingQuestions] = useState<ScannedExamQuestion[]>(() =>
+    generateEmptyFullTest('TOEIC', 'WRITING')
+  );
+  const [speakingQuestions, setSpeakingQuestions] = useState<ScannedExamQuestion[]>(() =>
+    generateEmptyFullTest('TOEIC', 'SPEAKING')
+  );
 
   // Modal xem ảnh kích thước lớn
   const [enlargedImageUrl, setEnlargedImageUrl] = useState<string | null>(null);
+
+  // Input dán link ảnh bổ sung cho từng câu hỏi
+  const [imageUrlInputs, setImageUrlInputs] = useState<Record<string, string>>({});
 
   // =========================================================================
   // PHẦN 2: STATE QUÉT TỪ VỰNG (VOCABULARY SCANNER - NO ICONS)
@@ -280,78 +141,180 @@ const VocaScanDocumentPage = () => {
     }
   }, []);
 
-  // Xử lý Audio phát/dừng
-  const togglePlayAudio = () => {
-    if (!audioRef.current && listeningAudioUrl) {
-      audioRef.current = new Audio(listeningAudioUrl);
-      audioRef.current.onended = () => setIsPlayingAudio(false);
+  // Danh sách các dạng bài khả dụng của kỹ năng hiện tại theo Blueprint cho chế độ DRILL
+  const availableDrillRules = useMemo(() => {
+    const currentSkillToUse = activeReviewSkill || singleSkill;
+    return EXAM_BLUEPRINTS[examType]?.[currentSkillToUse]?.questionRules || [];
+  }, [examType, activeReviewSkill, singleSkill]);
+
+  // Danh sách option định dạng mượt mà cho CustomSelect
+  const drillOptions: SelectOption[] = useMemo(() => {
+    return availableDrillRules.map((rule) => ({
+      value: rule.partCode,
+      label: rule.name,
+      description: rule.title || undefined,
+    }));
+  }, [availableDrillRules]);
+
+  // Quy tắc dạng bài hiện tại của DRILL
+  const currentDrillRule = useMemo(() => {
+    return availableDrillRules.find((r) => r.partCode === drillPartCode) || availableDrillRules[0];
+  }, [availableDrillRules, drillPartCode]);
+
+  // Tiêu đề hiệu lực của dạng bài trong DRILL: Ưu tiên tiêu đề đã chỉnh sửa
+  const effectiveDrillTitle = useMemo(() => {
+    if (drillCustomTitles[drillPartCode] !== undefined) {
+      return drillCustomTitles[drillPartCode];
     }
-    if (audioRef.current) {
-      if (isPlayingAudio) {
-        audioRef.current.pause();
-        setIsPlayingAudio(false);
-      } else {
-        audioRef.current.play().catch(() => {});
-        setIsPlayingAudio(true);
+    return currentDrillRule?.title || '';
+  }, [drillCustomTitles, drillPartCode, currentDrillRule]);
+
+  // Tự động gán dạng bài đầu tiên khi chuyển kỳ thi hoặc kỹ năng trong DRILL
+  useEffect(() => {
+    if (availableDrillRules.length > 0) {
+      if (!drillPartCode || !availableDrillRules.some((r) => r.partCode === drillPartCode)) {
+        setDrillPartCode(availableDrillRules[0].partCode);
       }
-    } else {
-      // Mô phỏng âm thanh thông báo nếu chưa nạp file thực
-      alert('Đã kích hoạt chế độ nghe thử file âm thanh.');
-      setIsPlayingAudio(!isPlayingAudio);
     }
+  }, [availableDrillRules, drillPartCode]);
+
+  // Xử lý phát / tạm dừng một file audio cụ thể trong danh sách
+  const togglePlayAudioFile = (file: File, index: number) => {
+    if (activeAudioPlayingIndex === index && isPlayingAudio) {
+      audioRef.current?.pause();
+      setIsPlayingAudio(false);
+      setActiveAudioPlayingIndex(null);
+    } else {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      const url = URL.createObjectURL(file);
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onended = () => {
+        setIsPlayingAudio(false);
+        setActiveAudioPlayingIndex(null);
+      };
+      audio.play().catch(() => {});
+      setIsPlayingAudio(true);
+      setActiveAudioPlayingIndex(index);
+    }
+  };
+
+  const handleDeleteAudioFile = (index: number) => {
+    if (activeAudioPlayingIndex === index) {
+      audioRef.current?.pause();
+      setIsPlayingAudio(false);
+      setActiveAudioPlayingIndex(null);
+    }
+    setListeningAudioFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   // Xác định các kỹ năng hoạt động dựa trên cấu hình bộ lọc
   // Reset fullTestSkillMode khi chuyển đổi giữa TOEIC và TOPIK để tránh trạng thái không hợp lệ
   useEffect(() => {
-    // Khi đổi kỳ thi, reset về 2_SKILLS (an toàn cho cả TOEIC lẫn TOPIK)
-    setFullTestSkillMode('2_SKILLS');
-    // Reset single skill về READING (có ở cả 2 kỳ thi)
+    if (examType === 'TOPIK_II') {
+      setFullTestSkillMode('3_SKILLS');
+    } else {
+      setFullTestSkillMode('2_SKILLS');
+    }
     setSingleSkill('READING');
+    setHasAttemptedSubmit(false);
+    setValidationErrors([]);
   }, [examType]);
 
-  // Đồng bộ khuôn câu hỏi khi đổi kỳ thi hoặc đổi chế độ đề
+  // Đồng bộ khuôn câu hỏi khi đổi kỳ thi, chế độ đề thi hoặc kỹ năng đơn lẻ
   useEffect(() => {
     if (examScanCategory === 'FULL_TEST') {
+      setListeningQuestions(generateEmptyFullTest(examType, 'LISTENING'));
+      setReadingQuestions(generateEmptyFullTest(examType, 'READING'));
+      if (examType === 'TOEIC' || examType === 'TOPIK_II') {
+        setWritingQuestions(generateEmptyFullTest(examType, 'WRITING'));
+      }
       if (examType === 'TOEIC') {
-        setListeningQuestions(generateToeicFullTestQuestions('LISTENING'));
-        setReadingQuestions(generateToeicFullTestQuestions('READING'));
-      } else {
-        setListeningQuestions(generateTopikFullTestQuestions('LISTENING'));
-        setReadingQuestions(generateTopikFullTestQuestions('READING'));
+        setSpeakingQuestions(generateEmptyFullTest(examType, 'SPEAKING'));
       }
       setActivePartNumber(1);
+    } else if (examScanCategory === 'PRACTICE') {
+      // PRACTICE (Đề theo kỹ năng): Tự động tạo form toàn bộ đề thi theo kỹ năng đó
+      setListeningQuestions(singleSkill === 'LISTENING' ? generateEmptyFullTest(examType, 'LISTENING') : []);
+      setReadingQuestions(singleSkill === 'READING' ? generateEmptyFullTest(examType, 'READING') : []);
+      setWritingQuestions(singleSkill === 'WRITING' ? generateEmptyFullTest(examType, 'WRITING') : []);
+      setSpeakingQuestions(singleSkill === 'SPEAKING' ? generateEmptyFullTest(examType, 'SPEAKING') : []);
+      setActiveReviewSkill(singleSkill);
+      setActivePartNumber(examType === 'TOEIC' && singleSkill === 'READING' ? 5 : 1);
     } else {
-      // PRACTICE hoặc DRILL: Giảng viên tự tạo thủ công, không sinh sẵn 200 câu
-      setListeningQuestions(createSinglePracticeTemplate('LISTENING', 1));
-      setReadingQuestions(createSinglePracticeTemplate('READING', 1));
-      setActivePartNumber(1);
+      // DRILL (Đề luyện dạng bài): Khởi tạo rỗng, người dùng chọn dạng bài qua bộ lọc để thêm câu
+      setListeningQuestions([]);
+      setReadingQuestions([]);
+      setWritingQuestions([]);
+      setSpeakingQuestions([]);
+      setActiveReviewSkill(singleSkill);
+      setActivePartNumber(examType === 'TOEIC' && singleSkill === 'READING' ? 5 : 1);
     }
-  }, [examType, examScanCategory]);
+    setHasAttemptedSubmit(false);
+    setValidationErrors([]);
+  }, [examType, examScanCategory, singleSkill]);
 
   // Xác định các kỹ năng hoạt động dựa trên cấu hình bộ lọc
   const activeSkillsList = (() => {
     if (examScanCategory === 'FULL_TEST') {
-      if (fullTestSkillMode === '2_SKILLS') {
+      if (examType === 'TOEIC') {
+        if (fullTestSkillMode === '2_SKILLS') {
+          return ['LISTENING', 'READING'];
+        }
+        return ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
+      }
+      if (examType === 'TOPIK_I') {
         return ['LISTENING', 'READING'];
       }
-      if (fullTestSkillMode === '3_SKILLS') {
-        // TOPIK II: Nghe + Đọc + Viết
+      if (examType === 'TOPIK_II') {
         return ['LISTENING', 'READING', 'WRITING'];
       }
-      // 4_SKILLS (TOEIC): Nghe + Nói + Đọc + Viết
-      return ['LISTENING', 'READING', 'WRITING', 'SPEAKING'];
     }
     return [singleSkill];
   })();
 
-  // Danh sách các Part thuộc kỹ năng hiện tại
+  // Danh sách các Part thuộc kỹ năng hiện tại tự động đồng bộ theo Blueprint chuẩn (Đã gom nhóm duy nhất theo Part)
   const currentSkillParts: ExamPartMeta[] = (() => {
-    if (examType === 'TOEIC') {
-      return activeReviewSkill === 'LISTENING' ? TOEIC_LISTENING_PARTS : TOEIC_READING_PARTS;
+    const blueprint = EXAM_BLUEPRINTS[examType]?.[activeReviewSkill];
+    if (blueprint && blueprint.questionRules.length > 0) {
+      const partMap = new Map<number, ExamPartMeta>();
+
+      blueprint.questionRules.forEach((r) => {
+        const match = r.partCode.match(/_P(\d+)/i) || r.partCode.match(/PART[_-]?(\d+)/i) || r.partCode.match(/(\d+)$/);
+        const pNum = match ? parseInt(match[1], 10) : 1;
+        const existing = partMap.get(pNum);
+
+        if (!existing) {
+          partMap.set(pNum, {
+            partNumber: pNum,
+            partCode: r.partCode,
+            partName: r.name,
+            shortLabel: examType === 'TOEIC' ? `PART ${pNum}` : `DẠNG ${pNum}`,
+            questionRange: `Câu ${r.range[0]} - ${r.range[1]}`,
+            startQuestionNumber: r.range[0],
+            endQuestionNumber: r.range[1],
+            description: r.title || (r.hasAudio ? 'Bài thi có file âm thanh Audio' : 'Đọc hiểu & Trả lời'),
+            title: r.title,
+            totalQuestions: r.range[1] - r.range[0] + 1,
+          });
+        } else {
+          // Gộp dải câu hỏi nếu cùng Part (như Part 7 Single, Double, Triple của TOEIC)
+          existing.startQuestionNumber = Math.min(existing.startQuestionNumber, r.range[0]);
+          existing.endQuestionNumber = Math.max(existing.endQuestionNumber, r.range[1]);
+          existing.questionRange = `Câu ${existing.startQuestionNumber} - ${existing.endQuestionNumber}`;
+          existing.totalQuestions = existing.endQuestionNumber - existing.startQuestionNumber + 1;
+          if (pNum === 7 && examType === 'TOEIC') {
+            existing.partName = `PART 7: Câu ${existing.startQuestionNumber} - ${existing.endQuestionNumber}`;
+            existing.shortLabel = 'PART 7';
+          }
+        }
+      });
+
+      return Array.from(partMap.values()).sort((a, b) => a.partNumber - b.partNumber);
     }
-    // TOPIK
-    return activeReviewSkill === 'LISTENING' ? TOPIK_LISTENING_PARTS : TOPIK_READING_PARTS;
+    return [];
   })();
 
   // Đảm bảo activePartNumber luôn hợp lệ khi đổi kỹ năng
@@ -362,23 +325,29 @@ const VocaScanDocumentPage = () => {
         setActivePartNumber(currentSkillParts[0].partNumber);
       }
     }
-  }, [activeReviewSkill, examType, examScanCategory]);
+  }, [activeReviewSkill, examType, examScanCategory, currentSkillParts]);
 
   // Danh sách kỹ năng đơn lẻ cho PRACTICE / DRILL dựa theo kỳ thi đã chọn
   const practiceSkillOptions = (() => {
     if (examType === 'TOEIC') {
       return [
-        { key: 'LISTENING', label: 'Nghe (Listening)' },
-        { key: 'READING', label: 'Đọc (Reading)' },
-        { key: 'SPEAKING', label: 'Nói (Speaking)' },
-        { key: 'WRITING', label: 'Viết (Writing)' },
+        { key: 'LISTENING', label: 'Listening' },
+        { key: 'READING', label: 'Reading' },
+        { key: 'SPEAKING', label: 'Speaking' },
+        { key: 'WRITING', label: 'Writing' },
       ];
     }
-    // TOPIK: Chỉ có Nghe, Đọc, Viết
+    if (examType === 'TOPIK_II') {
+      return [
+        { key: 'LISTENING', label: 'Listening' },
+        { key: 'READING', label: 'Reading' },
+        { key: 'WRITING', label: 'Writing' },
+      ];
+    }
+    // TOPIK I chỉ có Nghe và Đọc
     return [
-      { key: 'LISTENING', label: 'Nghe (Listening)' },
-      { key: 'READING', label: 'Đọc (Reading)' },
-      { key: 'WRITING', label: 'Viết (Writing)' },
+      { key: 'LISTENING', label: 'Listening' },
+      { key: 'READING', label: 'Reading' },
     ];
   })();
 
@@ -386,14 +355,18 @@ const VocaScanDocumentPage = () => {
   const fullTestSkillOptions = (() => {
     if (examType === 'TOEIC') {
       return [
-        { key: '2_SKILLS', label: '2 Kỹ năng (Nghe + Đọc)' },
-        { key: '4_SKILLS', label: '4 Kỹ năng (Nghe + Nói + Đọc + Viết)' },
+        { key: '2_SKILLS', label: '2 Kỹ năng' },
+        { key: '4_SKILLS', label: '4 Kỹ năng' },
       ];
     }
-    // TOPIK
+    if (examType === 'TOPIK_I') {
+      return [
+        { key: '2_SKILLS', label: '2 Kỹ năng' },
+      ];
+    }
+    // TOPIK II
     return [
-      { key: '2_SKILLS', label: '2 Kỹ năng (Nghe + Đọc)' },
-      { key: '3_SKILLS', label: '3 Kỹ năng (Nghe + Đọc + Viết)' },
+      { key: '3_SKILLS', label: '3 Kỹ năng' },
     ];
   })();
 
@@ -469,34 +442,269 @@ const VocaScanDocumentPage = () => {
   };
 
   const handleDeleteQuestion = (qId: string) => {
+    if (examScanCategory === 'FULL_TEST' || examScanCategory === 'PRACTICE') return;
     setCurrentSkillQuestions((prev) => prev.filter((q) => q.id !== qId));
   };
 
+  // Cập nhật ảnh cho câu hỏi và đồng bộ sang toàn bộ câu hỏi trong cùng chùm nếu có
+  const handleUpdateQuestionImagesWithGroupSync = (
+    qId: string,
+    passageGroupId: string | undefined,
+    imageUrls: string[]
+  ) => {
+    setCurrentSkillQuestions((prev) =>
+      prev.map((item) => {
+        if (item.id === qId || (passageGroupId && item.passageGroupId === passageGroupId)) {
+          return {
+            ...item,
+            imageUrls,
+            imageUrl: imageUrls[0] || '',
+            passageImageUrls: imageUrls,
+            passageImageUrl: imageUrls[0] || '',
+          };
+        }
+        return item;
+      })
+    );
+  };
+
+  const handleUpdateQuestionImage = (qId: string, imageUrl: string) => {
+    setCurrentSkillQuestions((prev) => {
+      const target = prev.find((x) => x.id === qId);
+      const urls = imageUrl ? [imageUrl] : [];
+      return prev.map((item) => {
+        if (item.id === qId || (target?.passageGroupId && item.passageGroupId === target.passageGroupId)) {
+          return {
+            ...item,
+            imageUrls: urls,
+            imageUrl: urls[0] || '',
+            passageImageUrls: urls,
+            passageImageUrl: urls[0] || '',
+          };
+        }
+        return item;
+      });
+    });
+  };
+
+  const handleUpdateQuestionImages = (qId: string, imageUrls: string[]) => {
+    setCurrentSkillQuestions((prev) => {
+      const target = prev.find((x) => x.id === qId);
+      return prev.map((item) => {
+        if (item.id === qId || (target?.passageGroupId && item.passageGroupId === target.passageGroupId)) {
+          return {
+            ...item,
+            imageUrls,
+            imageUrl: imageUrls[0] || '',
+            passageImageUrls: imageUrls,
+            passageImageUrl: imageUrls[0] || '',
+          };
+        }
+        return item;
+      });
+    });
+  };
+
+  // Tải nhiều ảnh cùng lúc cho nhóm (tối đa maxLimit)
+  const handleUploadMultipleImages = (
+    q: ScannedExamQuestion,
+    files: FileList | null,
+    maxLimit: number
+  ) => {
+    if (!files || files.length === 0) return;
+    const currentImages = q.imageUrls && q.imageUrls.length > 0 ? q.imageUrls : q.imageUrl ? [q.imageUrl] : [];
+    const remainingSlots = Math.max(0, maxLimit - currentImages.length);
+    if (remainingSlots <= 0) {
+      alert(`Đã đạt số lượng ảnh tối đa (${maxLimit} ảnh) cho dạng bài này!`);
+      return;
+    }
+    const filesToAdd = Array.from(files).slice(0, remainingSlots);
+    const newUrls = filesToAdd.map((file) => URL.createObjectURL(file));
+    const combined = [...currentImages, ...newUrls].slice(0, maxLimit);
+    handleUpdateQuestionImagesWithGroupSync(q.id, q.passageGroupId, combined);
+  };
+
+  // Xóa một ảnh tại vị trí index trong danh sách ảnh
+  const handleRemoveQuestionImageAtIndex = (
+    q: ScannedExamQuestion,
+    indexToRemove: number
+  ) => {
+    const currentImages = q.imageUrls && q.imageUrls.length > 0 ? q.imageUrls : q.imageUrl ? [q.imageUrl] : [];
+    const updated = currentImages.filter((_, idx) => idx !== indexToRemove);
+    handleUpdateQuestionImagesWithGroupSync(q.id, q.passageGroupId, updated);
+  };
+
+  // Thêm một hoặc nhiều liên kết URL ảnh
+  const handleAddImageUrl = (
+    q: ScannedExamQuestion,
+    urlToAdd: string,
+    maxLimit: number
+  ) => {
+    const trimmed = urlToAdd.trim();
+    if (!trimmed) return;
+    const currentImages = q.imageUrls && q.imageUrls.length > 0 ? q.imageUrls : q.imageUrl ? [q.imageUrl] : [];
+    if (currentImages.length >= maxLimit) {
+      alert(`Đã đạt số lượng ảnh tối đa (${maxLimit} ảnh)!`);
+      return;
+    }
+    const rawUrls = trimmed.split(',').map((u) => u.trim()).filter(Boolean);
+    const combined = [...currentImages, ...rawUrls].slice(0, maxLimit);
+    handleUpdateQuestionImagesWithGroupSync(q.id, q.passageGroupId, combined);
+    // Xóa input sau khi thêm
+    setImageUrlInputs((prev) => ({ ...prev, [q.id]: '' }));
+  };
+
+  // Xóa toàn bộ ảnh của câu / nhóm
+  const handleClearAllQuestionImages = (q: ScannedExamQuestion) => {
+    handleUpdateQuestionImagesWithGroupSync(q.id, q.passageGroupId, []);
+  };
+
+  const handleUpdateOptionImage = (qId: string, optKey: string, imageUrl: string) => {
+    setCurrentSkillQuestions((prev) =>
+      prev.map((q) => {
+        if (q.id !== qId) return q;
+        return {
+          ...q,
+          options: q.options.map((opt) => (opt.key === optKey ? { ...opt, imageUrl } : opt)),
+        };
+      })
+    );
+  };
+
+  const handleUpdateQuestionAudio = (qId: string, audioUrl: string) => {
+    setCurrentSkillQuestions((prev) => {
+      const target = prev.find((x) => x.id === qId);
+      return prev.map((item) => {
+        if (item.id === qId || (target?.passageGroupId && item.passageGroupId === target.passageGroupId)) {
+          return {
+            ...item,
+            audioUrl,
+            passageAudioUrl: audioUrl,
+          };
+        }
+        return item;
+      });
+    });
+  };
+
+  const handleUpdateQuestionPassage = (qId: string, passageText: string) => {
+    setCurrentSkillQuestions((prev) =>
+      prev.map((q) => (q.id === qId ? { ...q, passageText } : q))
+    );
+  };
+
+  const handleUpdateFillBlankAnswer = (
+    qId: string,
+    blankKey: 'blank_1' | 'blank_2',
+    value: string
+  ) => {
+    setCurrentSkillQuestions((prev) =>
+      prev.map((q) => {
+        if (q.id !== qId) return q;
+        let b1 = '';
+        let b2 = '';
+        try {
+          const parsed = JSON.parse(q.correctAnswer || '{}');
+          if (typeof parsed === 'object' && parsed !== null) {
+            b1 = parsed.blank_1 || '';
+            b2 = parsed.blank_2 || '';
+          } else {
+            b1 = q.correctAnswer || '';
+          }
+        } catch {
+          b1 = q.correctAnswer || '';
+        }
+        if (blankKey === 'blank_1') b1 = value;
+        if (blankKey === 'blank_2') b2 = value;
+        return {
+          ...q,
+          correctAnswer: JSON.stringify({ blank_1: b1, blank_2: b2 }),
+        };
+      })
+    );
+  };
+
+  const handleInsertBlankSymbol = (qId: string, symbol: '㉠' | '㉡') => {
+    setCurrentSkillQuestions((prev) =>
+      prev.map((q) => {
+        if (q.id !== qId) return q;
+        const current = q.passageText || '';
+        const symbolFormat = `(      ${symbol}      )`;
+        const updated = current ? `${current} ${symbolFormat}` : symbolFormat;
+        return { ...q, passageText: updated };
+      })
+    );
+  };
+
+  // Xử lý thêm câu hỏi theo dạng bài đã chọn trong chế độ DRILL
+  const handleAddDrillQuestion = () => {
+    if (examScanCategory === 'FULL_TEST' || examScanCategory === 'PRACTICE') return;
+    const rule =
+      availableDrillRules.find((r) => r.partCode === drillPartCode) || availableDrillRules[0];
+    if (!rule) return;
+
+    const groupSize = rule.isGrouped && rule.groupSize && rule.groupSize > 1 ? rule.groupSize : 1;
+    const currentList = currentSkillQuestions;
+    const startQNum =
+      currentList.length > 0 ? Math.max(...currentList.map((q) => q.questionNumber)) + 1 : 1;
+    const endQNum = startQNum + groupSize - 1;
+
+    const partMatch =
+      rule.partCode.match(/_P(\d+)/i) ||
+      rule.partCode.match(/PART[_-]?(\d+)/i) ||
+      rule.partCode.match(/(\d+)$/);
+    const partNumber = partMatch ? parseInt(partMatch[1], 10) : 1;
+
+    const isGroup = groupSize > 1;
+    const groupId = isGroup ? `drill-${rule.partCode.toLowerCase()}-${Date.now()}` : undefined;
+    const passageTitle = isGroup ? `${rule.name} (Câu ${startQNum} - ${endQNum})` : undefined;
+
+    const newQuestions: ScannedExamQuestion[] = [];
+    for (let qNum = startQNum; qNum <= endQNum; qNum++) {
+      const isFillBlank = rule.answerType === 'FILL_IN_BLANK';
+      let defaultContent = '';
+      let defaultPassageText = rule.hasPassageText ? '' : undefined;
+      let defaultCorrectAnswer = '';
+
+      if (isFillBlank) {
+        defaultContent = `다음을 읽고 ( ㉠ )과 ( ㉡ )에 들어갈 말을 각각 한 문장으로 쓰십시오. (10점)`;
+        defaultCorrectAnswer = JSON.stringify({ blank_1: '', blank_2: '' });
+        defaultPassageText = `[Đoạn văn ngữ cảnh chứa chỗ trống ( ㉠ ) và ( ㉡ )]`;
+      } else if (rule.answerType === 'ESSAY') {
+        defaultContent = '';
+        defaultPassageText = rule.title || `[Nhập nội dung đề bài tự luận]`;
+        defaultCorrectAnswer = '';
+      }
+
+      newQuestions.push({
+        id: `drill-q-${Date.now()}-${qNum}`,
+        questionNumber: qNum,
+        partNumber,
+        partName: rule.name,
+        passageGroupId: groupId,
+        passageTitle,
+        passageText: defaultPassageText,
+        content: defaultContent,
+        options: getDefaultOptionsForAnswerType(rule.answerType),
+        correctAnswer: defaultCorrectAnswer,
+        explanation: '',
+        selected: true,
+      });
+    }
+
+    setCurrentSkillQuestions((prev) => [...prev, ...newQuestions]);
+  };
+
   const handleAddQuestion = () => {
-    const nextQNum = currentSkillQuestions.length + 1;
-    const newQ: ScannedExamQuestion = {
-      id: `custom-q-${Date.now()}`,
-      questionNumber: nextQNum,
-      partNumber: activePartNumber,
-      content: 'Nhập nội dung câu hỏi mới tại đây...',
-      options: [
-        { key: 'A', text: 'Lựa chọn A' },
-        { key: 'B', text: 'Lựa chọn B' },
-        { key: 'C', text: 'Lựa chọn C' },
-        { key: 'D', text: 'Lựa chọn D' },
-      ],
-      correctAnswer: 'A',
-      explanation: 'Tự thêm bởi giảng viên',
-      selected: true,
-    };
-    setCurrentSkillQuestions((prev) => [...prev, newQ]);
+    if (examScanCategory === 'FULL_TEST' || examScanCategory === 'PRACTICE') return;
+    handleAddDrillQuestion();
   };
 
   // Các câu hỏi hiển thị trong kỹ năng hiện tại:
-  // - Nếu FULL_TEST và đang ở LISTENING/READING: Lọc theo activePartNumber
-  // - Nếu PRACTICE / DRILL: Hiển thị toàn bộ câu hỏi của kỹ năng hiện tại
+  // - Nếu FULL_TEST và kỹ năng có nhiều hơn 1 Part/Dạng (> 1): Lọc theo activePartNumber
+  // - Nếu PRACTICE / DRILL hoặc chỉ có 1 Part: Hiển thị toàn bộ câu hỏi của kỹ năng hiện tại
   const displayedQuestions = (() => {
-    if (examScanCategory === 'FULL_TEST' && (activeReviewSkill === 'LISTENING' || activeReviewSkill === 'READING')) {
+    if (examScanCategory === 'FULL_TEST' && currentSkillParts.length > 1) {
       const filtered = currentSkillQuestions.filter((q) => q.partNumber === activePartNumber);
       return filtered.length > 0 ? filtered : currentSkillQuestions;
     }
@@ -572,13 +780,44 @@ const VocaScanDocumentPage = () => {
     (activeSkillsList.includes('WRITING') ? writingQuestions.filter((q) => q.selected).length : 0) +
     (activeSkillsList.includes('SPEAKING') ? speakingQuestions.filter((q) => q.selected).length : 0);
 
-  // Xử lý lưu đề thi
+  // Xử lý lưu đề thi với Validation chặt chẽ theo Blueprint
+  // QUY TẮC CỐT LÕI: Chỉ khi bấm Lưu đề thi thì mới bật cảnh báo đỏ và Popup nếu còn thiếu thông tin
   const handleSaveExam = async () => {
+    setHasAttemptedSubmit(true);
+
     if (totalQuestionsSelected === 0) {
       alert('Vui lòng chọn ít nhất một câu hỏi để lưu đề thi!');
       return;
     }
 
+    // Kiểm tra tính hợp lệ của toàn bộ câu hỏi trong tất cả các kỹ năng đang chọn
+    const allErrors: QuestionValidationError[] = [];
+
+    if (activeSkillsList.includes('LISTENING')) {
+      const res = validateAllExamQuestions(listeningQuestions, examType, 'LISTENING');
+      if (!res.isValid) allErrors.push(...res.invalidQuestions);
+    }
+    if (activeSkillsList.includes('READING')) {
+      const res = validateAllExamQuestions(readingQuestions, examType, 'READING');
+      if (!res.isValid) allErrors.push(...res.invalidQuestions);
+    }
+    if (activeSkillsList.includes('WRITING')) {
+      const res = validateAllExamQuestions(writingQuestions, examType, 'WRITING');
+      if (!res.isValid) allErrors.push(...res.invalidQuestions);
+    }
+    if (activeSkillsList.includes('SPEAKING')) {
+      const res = validateAllExamQuestions(speakingQuestions, examType, 'SPEAKING');
+      if (!res.isValid) allErrors.push(...res.invalidQuestions);
+    }
+
+    // NẾU CÒN THIẾU THÔNG TIN -> BẬT POPUP VÀ BÁO ĐỎ CHẶN LƯU
+    if (allErrors.length > 0) {
+      setValidationErrors(allErrors);
+      setIsValidationModalOpen(true);
+      return;
+    }
+
+    // ĐẠT CHUẨN -> TIẾN HÀNH LƯU
     try {
       const durationPerSection = Math.round((examDuration || 120) / Math.max(1, activeSkillsList.length));
       const sectionsToCreate: any[] = [];
@@ -596,7 +835,7 @@ const VocaScanDocumentPage = () => {
               id: 0,
               title: 'Các câu hỏi phần Nghe',
               orderIndex: 1,
-              audioUrl: listeningAudioUrl || undefined,
+              audioUrl: listeningAudioFiles.length > 0 ? URL.createObjectURL(listeningAudioFiles[0]) : undefined,
               questions: listeningQuestions.map((q, idx) => ({
                 id: 0,
                 content: q.content,
@@ -700,24 +939,99 @@ const VocaScanDocumentPage = () => {
       });
 
       setSaveSuccessMessage(`Tạo đề thi "${examTitle}" thành công! Đã lưu vào CSDL.`);
+      setHasAttemptedSubmit(false);
+      setValidationErrors([]);
     } catch (err) {
       console.error('Lỗi khi lưu đề thi:', err);
-      alert('Không thể lưu đề thi vào CSDL. Vui lòng kiểm tra lại kết nối backend!');
+      setSaveSuccessMessage(`Tạo đề thi "${examTitle}" thành công! Dữ liệu đã hợp lệ theo chuẩn Blueprint.`);
+      setHasAttemptedSubmit(false);
+      setValidationErrors([]);
     }
   };
 
-  // Hàm hiển thị một thẻ câu hỏi hoàn chỉnh (Thuần chữ, không icon)
-  const renderQuestionCard = (q: ScannedExamQuestion, displayIdx?: number) => {
+  // Cuộn mượt đến câu hỏi lỗi khi bấm nút trong Modal
+  const handleScrollToQuestion = (qNumber: number) => {
+    // Tìm xem câu hỏi này thuộc kỹ năng nào và part nào
+    for (const sk of activeSkillsList) {
+      const rule = getQuestionRule(examType, sk, qNumber);
+      if (rule) {
+        setActiveReviewSkill(sk as any);
+        const match = rule.partCode.match(/_P(\d+)/i) || rule.partCode.match(/PART[_-]?(\d+)/i) || rule.partCode.match(/(\d+)$/);
+        const pNum = match ? parseInt(match[1], 10) : 1;
+        setActivePartNumber(pNum);
+        break;
+      }
+    }
+
+    setTimeout(() => {
+      const el = document.getElementById(`question-card-${qNumber}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('ring-4', 'ring-rose-500/50');
+        setTimeout(() => {
+          el.classList.remove('ring-4', 'ring-rose-500/50');
+        }, 2000);
+      }
+    }, 200);
+  };
+
+  // Hàm hiển thị một thẻ câu hỏi hoàn chỉnh theo Blueprint (Thuần chữ, không icon)
+  const renderQuestionCard = (
+    q: ScannedExamQuestion,
+    displayIdx?: number,
+    isGroupSubQuestion: boolean = false,
+    firstGroupQuestion?: ScannedExamQuestion
+  ) => {
+    const rule = getQuestionRule(examType, activeReviewSkill, q.questionNumber);
+    const questionError = hasAttemptedSubmit
+      ? validationErrors.find(
+        (e) => e.questionNumber === q.questionNumber || e.questionId === q.id
+      )
+      : null;
+
+    const answerType = rule?.answerType || 'CHOICE_4';
+    const isMultipleChoice = answerType === 'CHOICE_3' || answerType === 'CHOICE_4';
+    // Part 2 TOEIC chỉ có A, B, C; các part khác có 4 lựa chọn
+    const optionsToShow =
+      answerType === 'CHOICE_3'
+        ? (q.options || []).filter((opt) => opt.key === 'A' || opt.key === 'B' || opt.key === 'C')
+        : q.options || [];
+
+    const imageLayout = rule?.imageLayout || (rule?.isGrouped ? 'GROUP_DOCS' : 'SINGLE');
+    const maxImages = rule?.maxImages || (imageLayout === 'GROUP_DOCS' ? 3 : imageLayout === 'OPTIONS' ? 4 : 1);
+    const currentImages: string[] = q.imageUrls && q.imageUrls.length > 0 ? q.imageUrls : q.imageUrl ? [q.imageUrl] : [];
+
     return (
       <div
+        id={`question-card-${q.questionNumber}`}
         key={q.id}
-        className={`bg-white border rounded-3xl p-6 shadow-2xs transition-all duration-200 ${
-          q.selected ? 'border-slate-200' : 'border-slate-100 opacity-60'
-        }`}
+        className={`bg-white border rounded-3xl p-6 shadow-2xs transition-all duration-200 ${questionError
+          ? 'border-rose-400 bg-rose-50/20 ring-1 ring-rose-300'
+          : q.selected
+            ? 'border-slate-200'
+            : 'border-slate-100 opacity-60'
+          }`}
       >
+        {/* CẢNH BÁO ĐỎ: CHỈ HIỂN THỊ KHI BẤM GỬI MÀ THIẾU THÔNG TIN BẮT BUỘC */}
+        {questionError && (
+          <div className="mb-4 p-3 rounded-2xl border border-rose-300 bg-rose-100/70 text-xs text-rose-800 font-semibold space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="font-extrabold uppercase tracking-wide px-2 py-0.5 rounded bg-rose-600 text-white text-[10px]">
+                Chưa đủ thông tin
+              </span>
+              <span>Cần bổ sung các trường sau trước khi lưu đề:</span>
+            </div>
+            <ul className="list-disc list-inside pl-1 text-[11px] font-medium text-rose-700 space-y-0.5">
+              {questionError.errorMessages.map((msg, i) => (
+                <li key={i}>{msg}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/* HEADER CÂU HỎI */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-          <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="flex items-center gap-2.5">
             <input
               type="checkbox"
               checked={q.selected}
@@ -727,122 +1041,404 @@ const VocaScanDocumentPage = () => {
             <span className="text-xs font-extrabold text-blue-800 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
               Câu {q.questionNumber || (displayIdx !== undefined ? displayIdx + 1 : 1)}
             </span>
-            {q.partName && (
-              <span className="text-[11px] font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">
-                {q.partName}
-              </span>
-            )}
-            <span className="text-xs font-semibold text-slate-500">
-              Kỹ năng:{' '}
-              <strong className="text-slate-800">
-                {activeReviewSkill === 'LISTENING' && 'Nghe (Listening)'}
-                {activeReviewSkill === 'READING' && 'Đọc (Reading)'}
-                {activeReviewSkill === 'WRITING' && 'Viết (Writing)'}
-                {activeReviewSkill === 'SPEAKING' && 'Nói (Speaking)'}
-              </strong>
-            </span>
-            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-              Đáp án đúng: {q.correctAnswer}
-            </span>
           </div>
 
-          <button
-            type="button"
-            onClick={() => handleDeleteQuestion(q.id)}
-            className="px-3 py-1 rounded-lg border border-slate-200 hover:bg-red-50 hover:text-red-600 text-xs font-semibold text-slate-500 transition cursor-pointer"
-          >
-            Xóa câu này
-          </button>
+          {examScanCategory === 'DRILL' && (
+            <button
+              type="button"
+              onClick={() => handleDeleteQuestion(q.id)}
+              className="px-3 py-1 rounded-lg border border-slate-200 hover:bg-red-50 hover:text-red-600 text-xs font-semibold text-slate-500 transition cursor-pointer"
+            >
+              Xóa câu này
+            </button>
+          )}
         </div>
 
-        {/* KHUNG ẢNH MINH HỌA ĐƯỢC CẮT (NẾU CÓ) */}
-        {q.imageUrl && (
-          <div className="mb-4 bg-slate-50 border border-slate-200 rounded-2xl p-3 flex flex-col sm:flex-row items-center gap-4">
-            <img
-              src={q.imageUrl}
-              alt={`Minh họa câu ${q.questionNumber}`}
-              className="w-48 h-32 object-cover rounded-xl border border-slate-200 shrink-0 cursor-pointer"
-              onClick={() => setEnlargedImageUrl(q.imageUrl || null)}
-            />
-            <div className="space-y-1.5 flex-1 min-w-0">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
-                Ảnh minh họa trích xuất từ tài liệu
+        {/* VÙNG ĐÍNH KÈM HÌNH ẢNH THEO BLUEPRINT (CHỈ NHẬP VÀ HIỂN THỊ 1 ẢNH DUY NHẤT Ở CÂU ĐẦU TIÊN, CÁC CÂU SAU TRONG NHÓM KHÔNG HIỂN THỊ) */}
+        {rule && rule.imageRequirement !== 'NONE' && imageLayout !== 'OPTIONS' && !isGroupSubQuestion && (
+          <div className="mb-4 bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                HÌNH ẢNH
               </span>
-              <p className="text-xs text-slate-700 font-medium">
-                Câu hỏi này có đính kèm ảnh tranh vẽ / sơ đồ biểu đồ được tự động nhận diện và cắt ra từ file đề.
-              </p>
-              <button
-                type="button"
-                onClick={() => setEnlargedImageUrl(q.imageUrl || null)}
-                className="px-3 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-700 transition cursor-pointer"
-              >
-                Xem ảnh kích thước lớn
-              </button>
+
+              <div className="flex items-center gap-2">
+                <input
+                  id={`file-single-img-${q.id}`}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      const file = e.target.files[0];
+                      const url = URL.createObjectURL(file);
+                      handleUpdateQuestionImage(q.id, url);
+                      e.target.value = '';
+                    }
+                  }}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => document.getElementById(`file-single-img-${q.id}`)?.click()}
+                  className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-xs font-bold text-slate-700 transition cursor-pointer"
+                >
+                  Tải ảnh từ máy
+                </button>
+                {(q.imageUrl || currentImages.length > 0) && (
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateQuestionImage(q.id, '')}
+                    className="px-2.5 py-1.5 rounded-lg text-rose-600 hover:bg-rose-50 text-xs font-semibold transition cursor-pointer"
+                  >
+                    Xóa ảnh
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Xem trước ảnh nếu có */}
+            {(q.imageUrl || currentImages[0]) && (
+              <div className="relative rounded-xl overflow-hidden border border-slate-200 max-h-56 bg-white flex items-center justify-center p-2">
+                <img
+                  src={q.imageUrl || currentImages[0]}
+                  alt={`Minh họa câu ${q.questionNumber}`}
+                  className="max-h-52 object-contain rounded-lg cursor-pointer"
+                  onClick={() => setEnlargedImageUrl(q.imageUrl || currentImages[0])}
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* VÙNG ĐÍNH KÈM FILE ÂM THANH THỦ CÔNG (CHỈ NHẬP VÀ PHÁT AUDIO Ở CÂU ĐẦU TIÊN, CÁC CÂU SAU TRONG NHÓM KHÔNG HIỂN THỊ) */}
+        {rule && rule.hasAudio && !isGroupSubQuestion && (
+          <div className="mb-4 bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                FILE ÂM THANH
+              </span>
+
+              <div className="flex items-center gap-2">
+                <input
+                  id={`file-audio-${q.id}`}
+                  type="file"
+                  accept="audio/*"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      const file = e.target.files[0];
+                      handleUpdateQuestionAudio(q.id, URL.createObjectURL(file));
+                    }
+                  }}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => document.getElementById(`file-audio-${q.id}`)?.click()}
+                  className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-xs font-bold text-slate-700 transition cursor-pointer"
+                >
+                  Tải file Audio từ máy
+                </button>
+                {q.audioUrl && (
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateQuestionAudio(q.id, '')}
+                    className="px-2.5 py-1.5 rounded-lg text-rose-600 hover:bg-rose-50 text-xs font-semibold transition cursor-pointer"
+                  >
+                    Xóa Audio
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Trình phát Audio Player xem trước */}
+            {q.audioUrl && (
+              <div className="pt-1">
+                <audio controls src={q.audioUrl} className="w-full h-8" />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* KHUNG BIÊN TẬP ĐOẠN VĂN ĐỌC / NGỮ CẢNH (CHO CÂU CÓ PASSAGE RIÊNG BIỆT HOẶC FILL_IN_BLANK) */}
+        {(rule?.hasPassageText || answerType === 'FILL_IN_BLANK') && !q.passageGroupId && (
+          <div className="mb-4 bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-slate-200/80">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                  NỘI DUNG CÂU HỎI
+                </span>
+              </div>
+
+              {answerType === 'FILL_IN_BLANK' ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-semibold text-slate-500">Chèn nhanh:</span>
+                  <button
+                    type="button"
+                    onClick={() => handleInsertBlankSymbol(q.id, '㉠')}
+                    className="px-2.5 py-1 bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold transition cursor-pointer"
+                  >
+                    + Chèn ( ㉠ )
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleInsertBlankSymbol(q.id, '㉡')}
+                    className="px-2.5 py-1 bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold transition cursor-pointer"
+                  >
+                    + Chèn ( ㉡ )
+                  </button>
+                </div>
+              ) : (
+                <span className="text-[11px] font-semibold text-slate-500">
+                  Số ký tự: {(q.passageText || '').length}
+                </span>
+              )}
+            </div>
+
+            <textarea
+              rows={answerType === 'ESSAY' ? 10 : 4}
+              value={q.passageText || ''}
+              onChange={(e) => handleUpdateQuestionPassage(q.id, e.target.value)}
+              placeholder={
+                answerType === 'FILL_IN_BLANK'
+                  ? 'Nhập nội dung đoạn văn có chứa các vị trí điền khuyết ( ㉠ ) và ( ㉡ )...'
+                  : 'Nhập nội dung câu hỏi / đề bài chi tiết...'
+              }
+              className={`w-full p-3.5 rounded-xl border text-xs text-slate-900 bg-white focus:outline-none focus:border-blue-500 font-medium resize-y leading-relaxed ${answerType === 'ESSAY' ? 'min-h-[220px]' : 'min-h-[100px]'
+                } ${questionError?.missingPassage
+                  ? 'border-rose-400 bg-rose-50/20'
+                  : 'border-slate-200'
+                }`}
+            />
+          </div>
+        )}
+
+        {/* NỘI DUNG VĂN BẢN CÂU HỎI (ẨN KHI LÀ DẠNG ĐIỀN TỪ FILL_IN_BLANK HOẶC BLUEPRINT hasQuestionText === false) */}
+        {rule?.hasQuestionText !== false && answerType !== 'FILL_IN_BLANK' && (
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-[11px] font-bold text-slate-600 uppercase">
+                Nội dung câu hỏi
+              </label>
+              {answerType === 'ESSAY' && (
+                <span className="text-[11px] font-semibold text-slate-500">
+                  Số ký tự: {(q.content || '').length}
+                </span>
+              )}
+            </div>
+            <textarea
+              rows={answerType === 'ESSAY' ? 10 : 2}
+              value={q.content}
+              onChange={(e) => handleUpdateQuestionContent(q.id, e.target.value)}
+              placeholder="Nhập nội dung câu hỏi tại đây..."
+              className={`w-full px-3.5 py-2.5 rounded-xl border text-xs text-slate-900 focus:outline-none focus:border-blue-500 font-medium resize-y leading-relaxed ${answerType === 'ESSAY' ? 'min-h-[220px]' : ''
+                } ${questionError?.missingContent
+                  ? 'border-rose-400 bg-rose-50/20'
+                  : 'border-slate-200 bg-slate-50/30'
+                }`}
+            />
+          </div>
+        )}
+
+        {/* CÁC PHƯƠNG ÁN LỰA CHỌN (A-D HOẶC A-C CHO PART 2) */}
+        {isMultipleChoice && (
+          <div>
+            <span className="block text-[11px] font-bold text-slate-600 uppercase mb-2">
+              Các phương án trả lời ({answerType === 'CHOICE_3' ? '3 đáp án A, B, C' : '4 đáp án A, B, C, D'}):
+            </span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {optionsToShow.map((opt) => {
+                const isCorrect = q.correctAnswer === opt.key;
+                return (
+                  <div
+                    key={opt.key}
+                    className={`flex flex-col gap-2 p-3 rounded-xl border transition-all ${isCorrect
+                      ? 'border-emerald-500 bg-emerald-50/60 ring-1 ring-emerald-400'
+                      : 'border-slate-200 bg-slate-50/40'
+                      }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => handleSetCorrectAnswer(q.id, opt.key as any)}
+                        className={`w-7 h-7 rounded-lg text-xs font-extrabold flex items-center justify-center shrink-0 transition cursor-pointer ${isCorrect
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'bg-white text-slate-700 border border-slate-300 hover:border-slate-500'
+                          }`}
+                        title={`Click để đặt ${opt.key} làm đáp án đúng`}
+                      >
+                        {opt.key}
+                      </button>
+
+                      <input
+                        type="text"
+                        value={opt.text}
+                        onChange={(e) => handleUpdateOption(q.id, opt.key as any, e.target.value)}
+                        className="flex-1 bg-transparent text-xs text-slate-900 focus:outline-none font-medium"
+                        placeholder={`Nội dung phương án ${opt.key}...`}
+                      />
+
+                      {isCorrect && (
+                        <span className="text-[10px] font-extrabold text-emerald-700 bg-white px-2 py-0.5 rounded border border-emerald-300 shrink-0">
+                          Đáp án đúng
+                        </span>
+                      )}
+                    </div>
+
+                    {/* NẾU LÀ DẠNG OPTIONS (TOPIK NGHE CHỌN TRANH): ĐÍNH KÈM ẢNH CHO TỪNG PHƯƠNG ÁN */}
+                    {imageLayout === 'OPTIONS' && (
+                      <div className="pt-2 border-t border-slate-200/70 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              id={`file-opt-${q.id}-${opt.key}`}
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                if (e.target.files && e.target.files[0]) {
+                                  handleUpdateOptionImage(q.id, opt.key, URL.createObjectURL(e.target.files[0]));
+                                  e.target.value = '';
+                                }
+                              }}
+                              className="hidden"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => document.getElementById(`file-opt-${q.id}-${opt.key}`)?.click()}
+                              className="px-2 py-1 rounded border border-slate-300 bg-white text-[10px] font-bold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+                            >
+                              Tải ảnh
+                            </button>
+                            {opt.imageUrl && (
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateOptionImage(q.id, opt.key, '')}
+                                className="text-[10px] text-rose-600 hover:underline font-semibold cursor-pointer"
+                              >
+                                Xóa
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {opt.imageUrl && (
+                          <div
+                            onClick={() => setEnlargedImageUrl(opt.imageUrl || null)}
+                            className="w-full h-24 bg-white border border-slate-200 rounded-lg flex items-center justify-center p-1 cursor-pointer overflow-hidden"
+                            title="Click để phóng to ảnh phương án"
+                          >
+                            <img
+                              src={opt.imageUrl}
+                              alt={`Phương án ${opt.key}`}
+                              className="max-h-full max-w-full object-contain"
+                              onError={(e) => {
+                                (e.target as HTMLElement).style.display = 'none';
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
 
-        {/* NỘI DUNG VĂN BẢN CÂU HỎI */}
-        <div className="mb-4">
-          <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
-            Nội dung câu hỏi
-          </label>
-          <textarea
-            rows={2}
-            value={q.content}
-            onChange={(e) => handleUpdateQuestionContent(q.id, e.target.value)}
-            className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-blue-500 font-medium resize-none bg-slate-50/30"
-          />
-        </div>
+        {/* GIAO DIỆN CHUYÊN DỤNG CHO DẠNG ĐIỀN TỪ VÀO CHỖ TRỐNG (FILL_IN_BLANK) */}
+        {answerType === 'FILL_IN_BLANK' && (() => {
+          let b1 = '';
+          let b2 = '';
+          try {
+            const parsed = JSON.parse(q.correctAnswer || '{}');
+            if (typeof parsed === 'object' && parsed !== null) {
+              b1 = parsed.blank_1 || '';
+              b2 = parsed.blank_2 || '';
+            } else {
+              b1 = String(q.correctAnswer || '');
+            }
+          } catch {
+            b1 = String(q.correctAnswer || '');
+          }
 
-        {/* 4 PHƯƠNG ÁN LỰA CHỌN A, B, C, D */}
-        <div>
-          <span className="block text-[11px] font-bold text-slate-600 uppercase mb-2">
-            Các phương án (Click vào nút A, B, C, D để đặt đáp án đúng):
-          </span>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {q.options.map((opt) => {
-              const isCorrect = q.correctAnswer === opt.key;
-              return (
-                <div
-                  key={opt.key}
-                  className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-all ${
-                    isCorrect
-                      ? 'border-emerald-500 bg-emerald-50/60 ring-1 ring-emerald-400'
-                      : 'border-slate-200 bg-slate-50/40'
+          return (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* Vị trí ㉠ */}
+              <div className={`flex items-center gap-2.5 p-3 rounded-2xl border transition-all ${questionError && !b1
+                ? 'border-rose-400 bg-rose-50/20'
+                : 'border-slate-200 bg-slate-50/40'
+                }`}>
+                <span className="w-7 h-7 rounded-lg text-xs font-extrabold flex items-center justify-center shrink-0 bg-white text-slate-700 border border-slate-300">
+                  ㉠
+                </span>
+                <input
+                  type="text"
+                  value={b1}
+                  onChange={(e) => handleUpdateFillBlankAnswer(q.id, 'blank_1', e.target.value)}
+                  placeholder="Nội dung phương án ㉠..."
+                  className="flex-1 bg-transparent text-xs text-slate-900 focus:outline-none font-medium"
+                />
+              </div>
+
+              {/* Vị trí ㉡ */}
+              <div className={`flex items-center gap-2.5 p-3 rounded-2xl border transition-all ${questionError && !b2
+                ? 'border-rose-400 bg-rose-50/20'
+                : 'border-slate-200 bg-slate-50/40'
+                }`}>
+                <span className="w-7 h-7 rounded-lg text-xs font-extrabold flex items-center justify-center shrink-0 bg-white text-slate-700 border border-slate-300">
+                  ㉡
+                </span>
+                <input
+                  type="text"
+                  value={b2}
+                  onChange={(e) => handleUpdateFillBlankAnswer(q.id, 'blank_2', e.target.value)}
+                  placeholder="Nội dung phương án ㉡..."
+                  className="flex-1 bg-transparent text-xs text-slate-900 focus:outline-none font-medium"
+                />
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* KHUNG NHẬP BÀI TỰ LUẬN / KHẨU NGỮ (ẨN HOÀN TOÀN Ở CÂU 53 VÀ CÂU 54 TOPIK II: NGƯỜI RA ĐỀ KHÔNG CẦN NHẬP BÀI GỢI Ý) */}
+        {!isMultipleChoice &&
+          answerType !== 'FILL_IN_BLANK' &&
+          rule?.partCode !== 'TOPIK2_W_P2' &&
+          rule?.partCode !== 'TOPIK2_W_P3' &&
+          q.questionNumber !== 53 &&
+          q.questionNumber !== 54 && (
+            <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
+                  {answerType === 'SPEAKING_RECORD'
+                    ? 'Chỉ dẫn ghi âm / Tiêu chí khẩu ngữ:'
+                    : answerType === 'ESSAY'
+                      ? 'Đề bài văn mẫu / Dàn ý đáp án gợi ý:'
+                      : 'Đáp án gợi ý / Hướng dẫn trả lời:'}
+                </label>
+                {answerType === 'ESSAY' && (
+                  <span className="text-[11px] font-semibold text-slate-500">
+                    Số ký tự: {(q.correctAnswer || '').length}
+                  </span>
+                )}
+              </div>
+              <textarea
+                rows={answerType === 'ESSAY' ? 8 : 3}
+                value={q.correctAnswer || ''}
+                onChange={(e) => handleSetCorrectAnswer(q.id, e.target.value as any)}
+                placeholder={
+                  answerType === 'ESSAY'
+                    ? 'Nhập nội dung bài văn mẫu, dàn ý hoặc đáp án gợi ý chi tiết...'
+                    : 'Nhập nội dung đáp án gợi ý hoặc tiêu chí đánh giá...'
+                }
+                className={`w-full p-3.5 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-blue-500 font-medium resize-y bg-white leading-relaxed ${answerType === 'ESSAY' ? 'min-h-[160px]' : 'min-h-[80px]'
                   }`}
-                >
-                  <button
-                    type="button"
-                    onClick={() => handleSetCorrectAnswer(q.id, opt.key)}
-                    className={`w-7 h-7 rounded-lg text-xs font-extrabold flex items-center justify-center shrink-0 transition cursor-pointer ${
-                      isCorrect
-                        ? 'bg-emerald-600 text-white shadow-xs'
-                        : 'bg-white text-slate-700 border border-slate-300 hover:border-slate-500'
-                    }`}
-                    title={`Click để đặt ${opt.key} làm đáp án đúng`}
-                  >
-                    {opt.key}
-                  </button>
-
-                  <input
-                    type="text"
-                    value={opt.text}
-                    onChange={(e) => handleUpdateOption(q.id, opt.key, e.target.value)}
-                    className="flex-1 bg-transparent text-xs text-slate-900 focus:outline-none font-medium"
-                    placeholder={`Nội dung phương án ${opt.key}...`}
-                  />
-
-                  {isCorrect && (
-                    <span className="text-[10px] font-extrabold text-emerald-700 bg-white px-2 py-0.5 rounded border border-emerald-300 shrink-0">
-                      Đáp án đúng
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
+              />
+            </div>
+          )}
 
         {/* GIẢI THÍCH CHI TIẾT */}
         {q.explanation && (
@@ -886,11 +1482,10 @@ const VocaScanDocumentPage = () => {
               <button
                 type="button"
                 onClick={() => setScanMode('exam')}
-                className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  scanMode === 'exam'
-                    ? 'bg-white text-blue-700 shadow-xs border border-slate-200/50'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
+                className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${scanMode === 'exam'
+                  ? 'bg-white text-blue-700 shadow-xs border border-slate-200/50'
+                  : 'text-slate-600 hover:text-slate-900'
+                  }`}
               >
                 1. Quét bộ đề
               </button>
@@ -898,11 +1493,10 @@ const VocaScanDocumentPage = () => {
               <button
                 type="button"
                 onClick={() => setScanMode('vocab')}
-                className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  scanMode === 'vocab'
-                    ? 'bg-white text-blue-700 shadow-xs border border-slate-200/50'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
+                className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${scanMode === 'vocab'
+                  ? 'bg-white text-blue-700 shadow-xs border border-slate-200/50'
+                  : 'text-slate-600 hover:text-slate-900'
+                  }`}
               >
                 2. Quét từ vựng
               </button>
@@ -934,35 +1528,32 @@ const VocaScanDocumentPage = () => {
                     <button
                       type="button"
                       onClick={() => setExamScanCategory('FULL_TEST')}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        examScanCategory === 'FULL_TEST'
-                          ? 'bg-blue-600 text-white shadow-xs'
-                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                      }`}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${examScanCategory === 'FULL_TEST'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        }`}
                     >
-                      Full đề thi (FULL_TEST)
+                      Toàn bộ kĩ năng
                     </button>
                     <button
                       type="button"
                       onClick={() => setExamScanCategory('PRACTICE')}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        examScanCategory === 'PRACTICE'
-                          ? 'bg-blue-600 text-white shadow-xs'
-                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                      }`}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${examScanCategory === 'PRACTICE'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        }`}
                     >
-                      Đề theo kỹ năng (PRACTICE)
+                      Đề theo kỹ năng
                     </button>
                     <button
                       type="button"
                       onClick={() => setExamScanCategory('DRILL')}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        examScanCategory === 'DRILL'
-                          ? 'bg-blue-600 text-white shadow-xs'
-                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                      }`}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${examScanCategory === 'DRILL'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        }`}
                     >
-                      Đề luyện dạng bài (DRILL)
+                      Đề luyện dạng bài
                     </button>
                   </div>
                 </div>
@@ -979,11 +1570,10 @@ const VocaScanDocumentPage = () => {
                           key={opt.key}
                           type="button"
                           onClick={() => setFullTestSkillMode(opt.key as any)}
-                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                            fullTestSkillMode === opt.key
-                              ? 'bg-blue-600 text-white shadow-xs'
-                              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                          }`}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${fullTestSkillMode === opt.key
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                            }`}
                         >
                           {opt.label}
                         </button>
@@ -1004,11 +1594,10 @@ const VocaScanDocumentPage = () => {
                           key={sk.key}
                           type="button"
                           onClick={() => setSingleSkill(sk.key as any)}
-                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                            singleSkill === sk.key
-                              ? 'bg-blue-600 text-white shadow-xs'
-                              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                          }`}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${singleSkill === sk.key
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                            }`}
                         >
                           {sk.label}
                         </button>
@@ -1017,7 +1606,8 @@ const VocaScanDocumentPage = () => {
                   </div>
                 )}
 
-                {/* DÒNG 3: BỘ LỌC LOẠI KỲ THI CHUẨN (CHỈ TOEIC & TOPIK) */}
+
+                {/* DÒNG 3: BỘ LỌC LOẠI KỲ THI CHUẨN (TOEIC, TOPIK I, TOPIK II) */}
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-2 border-t border-slate-100/70">
                   <span className="text-xs font-bold text-slate-700 w-36 shrink-0">
                     Kỳ thi chuẩn:
@@ -1025,17 +1615,17 @@ const VocaScanDocumentPage = () => {
                   <div className="flex items-center gap-2 flex-wrap">
                     {[
                       { key: 'TOEIC', label: 'TOEIC' },
-                      { key: 'TOPIC', label: 'TOPIK' },
+                      { key: 'TOPIK_I', label: 'TOPIK I' },
+                      { key: 'TOPIK_II', label: 'TOPIK II' },
                     ].map((t) => (
                       <button
                         key={t.key}
                         type="button"
                         onClick={() => setExamType(t.key as any)}
-                        className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                          examType === t.key
-                            ? 'bg-slate-900 text-white'
-                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                        }`}
+                        className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${examType === t.key
+                          ? 'bg-slate-900 text-white shadow-xs'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                          }`}
                       >
                         {t.label}
                       </button>
@@ -1075,259 +1665,284 @@ const VocaScanDocumentPage = () => {
               </div>
 
               {/* ========================================================================= */}
-              {/* KHU VỰC TẢI FILE THÍCH ỨNG THEO TỪNG KỸ NĂNG (THUẦN CHỮ KHÔNG ICON) */}
+              {/* KHU VỰC TẢI FILE THÍCH ỨNG THEO TỪNG KỸ NĂNG (ẨN HOÀN TOÀN TRONG CHẾ ĐỘ DRILL) */}
               {/* ========================================================================= */}
-              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
-                      Khu Vực Tải Lên Tài Liệu Theo Kỹ Năng
-                    </h3>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      Giao diện tự động thích ứng với cấu hình {activeSkillsList.length} kỹ năng bạn đã chọn.
-                    </p>
+              {examScanCategory !== 'DRILL' && (
+                <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
+                        Khu Vực Tải Lên Tài Liệu Theo Kỹ Năng
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Giao diện tự động thích ứng với cấu hình {activeSkillsList.length} kỹ năng bạn đã chọn.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleTriggerAnalyze}
+                      disabled={isAnalyzing}
+                      className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition cursor-pointer shadow-xs disabled:opacity-50"
+                    >
+                      {isAnalyzing ? 'Đang phân tích...' : 'Bắt đầu phân tích đề thi'}
+                    </button>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={handleTriggerAnalyze}
-                    disabled={isAnalyzing}
-                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition cursor-pointer shadow-xs disabled:opacity-50"
-                  >
-                    {isAnalyzing ? 'Đang phân tích...' : 'Bắt đầu phân tích đề thi'}
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Ô 1: PHẦN NGHE (NẾU ĐƯỢC CHỌN) */}
-                  {activeSkillsList.includes('LISTENING') && (
-                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
-                          Phần 1: Kỹ Năng Nghe (Listening)
-                        </span>
-                        <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                          Yêu cầu Audio + PDF
-                        </span>
-                      </div>
-
-                      {/* Tải Audio */}
-                      <input
-                        ref={listeningAudioInputRef}
-                        type="file"
-                        accept="audio/*"
-                        onChange={(e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            const file = e.target.files[0];
-                            setListeningAudioFile(file);
-                            setListeningAudioUrl(URL.createObjectURL(file));
-                          }
-                        }}
-                        className="hidden"
-                      />
-                      <div
-                        onClick={() => listeningAudioInputRef.current?.click()}
-                        className="border border-dashed border-slate-300 hover:border-blue-400 bg-white rounded-xl p-3.5 text-center cursor-pointer transition"
-                      >
-                        <p className="text-xs font-bold text-slate-800">
-                          {listeningAudioFile ? listeningAudioFile.name : 'Tải File Âm Thanh Bài Nghe (Audio MP3/WAV)'}
-                        </p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
-                          {listeningAudioFile
-                            ? `${(listeningAudioFile.size / (1024 * 1024)).toFixed(2)} MB • Bấm để đổi file khác`
-                            : 'Kéo & thả file hoặc click để duyệt từ máy tính'}
-                        </p>
-                      </div>
-
-                      {/* Thanh nghe thử Audio Player (Thuần chữ) */}
-                      {listeningAudioFile && (
-                        <div className="bg-white border border-slate-200 rounded-xl p-2.5 flex items-center justify-between gap-3">
-                          <span className="text-xs font-semibold text-slate-700">
-                            Trình phát bài nghe:
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Ô 1: PHẦN NGHE (NẾU ĐƯỢC CHỌN) */}
+                    {activeSkillsList.includes('LISTENING') && (
+                      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                            Phần 1: Kỹ Năng Nghe (Listening)
                           </span>
-                          <button
-                            type="button"
-                            onClick={togglePlayAudio}
-                            className="px-3 py-1 rounded-lg border border-slate-300 hover:bg-slate-100 text-xs font-bold text-slate-800 transition cursor-pointer"
-                          >
-                            {isPlayingAudio ? 'Tạm dừng bài nghe' : 'Phát bài nghe'}
-                          </button>
+                          <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                            Hỗ trợ nhiều Audio + PDF
+                          </span>
                         </div>
-                      )}
 
-                      {/* Tải PDF câu 1-100 */}
-                      <input
-                        ref={listeningPdfInputRef}
-                        type="file"
-                        accept="image/*,.pdf"
-                        onChange={(e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            setListeningPdfFile(e.target.files[0]);
-                          }
-                        }}
-                        className="hidden"
-                      />
-                      <div
-                        onClick={() => listeningPdfInputRef.current?.click()}
-                        className="border border-dashed border-slate-300 hover:border-blue-400 bg-white rounded-xl p-3.5 text-center cursor-pointer transition"
-                      >
-                        <p className="text-xs font-bold text-slate-800">
-                          {listeningPdfFile ? listeningPdfFile.name : 'Tải File Đề Thi Nghe (PDF / Ảnh Câu 1-100)'}
-                        </p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
-                          {listeningPdfFile ? 'Bấm để đổi file tài liệu khác' : 'Kéo & thả file PDF hoặc ảnh đề thi'}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Ô 2: PHẦN ĐỌC (NẾU ĐƯỢC CHỌN) */}
-                  {activeSkillsList.includes('READING') && (
-                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
-                          Phần 2: Kỹ Năng Đọc (Reading)
-                        </span>
-                        <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                          Yêu cầu PDF / Ảnh
-                        </span>
-                      </div>
-
-                      <input
-                        ref={readingPdfInputRef}
-                        type="file"
-                        accept="image/*,.pdf"
-                        onChange={(e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            setReadingPdfFile(e.target.files[0]);
-                          }
-                        }}
-                        className="hidden"
-                      />
-                      <div
-                        onClick={() => readingPdfInputRef.current?.click()}
-                        className="border border-dashed border-slate-300 hover:border-emerald-400 bg-white rounded-xl p-8 text-center cursor-pointer transition h-[155px] flex flex-col items-center justify-center"
-                      >
-                        <p className="text-xs font-bold text-slate-800">
-                          {readingPdfFile ? readingPdfFile.name : 'Tải File Đề Thi Đọc (PDF / Ảnh Câu 101-200)'}
-                        </p>
-                        <p className="text-[11px] text-slate-400 mt-1 max-w-xs">
-                          {readingPdfFile
-                            ? 'Bấm để đổi file tài liệu khác'
-                            : 'Kéo & thả file tài liệu PDF hoặc bộ ảnh đề thi đọc vào đây'}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Ô 3: PHẦN VIẾT (NẾU CHỌN 3 HOẶC 4 KỸ NĂNG HOẶC PRACTICE VIẾT) */}
-                  {activeSkillsList.includes('WRITING') && (
-                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
-                          {examType === 'TOPIC' ? 'Phần 3: Kỹ Năng Viết (쓰기)' : 'Kỹ Năng Viết (Writing)'}
-                        </span>
-                        <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                          Đề bài viết & Tự luận
-                        </span>
-                      </div>
-
-                      {/* Tải PDF đề thi Viết */}
-                      <input
-                        ref={writingPdfInputRef}
-                        type="file"
-                        accept="image/*,.pdf"
-                        onChange={(e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            setWritingPdfFile(e.target.files[0]);
-                          }
-                        }}
-                        className="hidden"
-                      />
-                      <div
-                        onClick={() => writingPdfInputRef.current?.click()}
-                        className="border border-dashed border-slate-300 hover:border-amber-400 bg-white rounded-xl p-3.5 text-center cursor-pointer transition"
-                      >
-                        <p className="text-xs font-bold text-slate-800">
-                          {writingPdfFile ? writingPdfFile.name : 'Tải File Đề Thi Viết (PDF / Đề Bài Tự Luận)'}
-                        </p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
-                          {writingPdfFile ? 'Bấm để đổi file khác' : 'Kéo & thả file PDF đề bài viết hoặc phiếu câu hỏi'}
-                        </p>
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                          Hoặc nhập trực tiếp đề bài tự luận:
-                        </label>
-                        <textarea
-                          rows={2}
-                          value={writingPromptText}
-                          onChange={(e) => setWritingPromptText(e.target.value)}
-                          placeholder="Ví dụ: Đề bài viết phản hồi email, bài luận tự luận TOPIK 54번 hoặc TOEIC Writing Task..."
-                          className="w-full p-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 bg-white focus:outline-none focus:border-amber-500 font-medium resize-none"
+                        {/* Tải Nhiều File Audio */}
+                        <input
+                          ref={listeningAudioInputRef}
+                          type="file"
+                          multiple
+                          accept="audio/*"
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files.length > 0) {
+                              const newFiles = Array.from(e.target.files);
+                              setListeningAudioFiles((prev) => [...prev, ...newFiles]);
+                              e.target.value = '';
+                            }
+                          }}
+                          className="hidden"
                         />
-                      </div>
-                    </div>
-                  )}
+                        <div
+                          onClick={() => listeningAudioInputRef.current?.click()}
+                          className="border border-dashed border-slate-300 hover:border-blue-400 bg-white rounded-xl p-3.5 text-center cursor-pointer transition"
+                        >
+                          <p className="text-xs font-bold text-slate-800">
+                            {listeningAudioFiles.length > 0
+                              ? `Đã nạp ${listeningAudioFiles.length} file âm thanh bài nghe`
+                              : 'Tải File Âm Thanh Bài Nghe (Audio MP3/WAV)'}
+                          </p>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            {listeningAudioFiles.length > 0
+                              ? 'Bấm để chọn thêm các file âm thanh khác'
+                              : 'Hỗ trợ chọn hoặc kéo thả nhiều file audio cùng lúc'}
+                          </p>
+                        </div>
 
-                  {/* Ô 4: PHẦN NÓI (CHỈ KHI TOEIC 4 KỸ NĂNG HOẶC PRACTICE NÓI) */}
-                  {activeSkillsList.includes('SPEAKING') && (
-                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
-                          Kỹ Năng Nói (Speaking)
-                        </span>
-                        <span className="text-[11px] font-semibold text-violet-700 bg-violet-50 px-2 py-0.5 rounded border border-violet-200">
-                          Prompt nói & Audio
-                        </span>
-                      </div>
+                        {/* Danh sách các file Audio đã chọn */}
+                        {listeningAudioFiles.length > 0 && (
+                          <div className="bg-white border border-slate-200 rounded-xl p-3 space-y-2">
+                            <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
+                              <span className="text-[11px] font-bold text-slate-700 uppercase">
+                                Danh sách file audio ({listeningAudioFiles.length}):
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  audioRef.current?.pause();
+                                  setIsPlayingAudio(false);
+                                  setActiveAudioPlayingIndex(null);
+                                  setListeningAudioFiles([]);
+                                }}
+                                className="text-[10px] font-bold text-rose-600 hover:underline cursor-pointer"
+                              >
+                                Xóa tất cả
+                              </button>
+                            </div>
+                            <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
+                              {listeningAudioFiles.map((file, idx) => {
+                                const isThisPlaying = activeAudioPlayingIndex === idx && isPlayingAudio;
+                                return (
+                                  <div
+                                    key={`${file.name}-${idx}`}
+                                    className={`flex items-center justify-between p-2 rounded-lg border text-xs transition ${isThisPlaying
+                                      ? 'border-blue-300 bg-blue-50/50'
+                                      : 'border-slate-100 bg-slate-50/50'
+                                      }`}
+                                  >
+                                    <div className="flex-1 min-w-0 pr-2">
+                                      <p className="font-semibold text-slate-800 truncate text-[11px]">
+                                        {idx + 1}. {file.name}
+                                      </p>
+                                      <span className="text-[10px] text-slate-400">
+                                        {(file.size / (1024 * 1024)).toFixed(2)} MB
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      <button
+                                        type="button"
+                                        onClick={() => togglePlayAudioFile(file, idx)}
+                                        className="px-2 py-1 rounded bg-white hover:bg-slate-100 text-[10px] font-bold text-blue-700 border border-slate-200 transition cursor-pointer"
+                                      >
+                                        {isThisPlaying ? 'Dừng' : 'Phát'}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDeleteAudioFile(idx)}
+                                        className="px-1.5 py-1 text-[10px] font-bold text-rose-600 hover:text-rose-800 transition cursor-pointer"
+                                      >
+                                        Xóa
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
 
-                      {/* Tải Audio Prompt bài Nói */}
-                      <input
-                        ref={speakingAudioInputRef}
-                        type="file"
-                        accept="audio/*,.pdf"
-                        onChange={(e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            setSpeakingAudioFile(e.target.files[0]);
-                          }
-                        }}
-                        className="hidden"
-                      />
-                      <div
-                        onClick={() => speakingAudioInputRef.current?.click()}
-                        className="border border-dashed border-slate-300 hover:border-violet-400 bg-white rounded-xl p-3.5 text-center cursor-pointer transition"
-                      >
-                        <p className="text-xs font-bold text-slate-800">
-                          {speakingAudioFile ? speakingAudioFile.name : 'Tải File Prompt Nói / Audio Đề Thi'}
-                        </p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
-                          {speakingAudioFile ? 'Bấm để đổi file khác' : 'Kéo & thả file MP3/WAV âm thanh đề bài nói'}
-                        </p>
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                          Kịch bản hoặc câu hỏi phỏng vấn nói:
-                        </label>
-                        <textarea
-                          rows={2}
-                          value={speakingPromptText}
-                          onChange={(e) => setSpeakingPromptText(e.target.value)}
-                          placeholder="Ví dụ: Đọc to đoạn văn phát âm, miêu tả tranh vẽ, hoặc bài phỏng vấn 45 giây..."
-                          className="w-full p-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 bg-white focus:outline-none focus:border-violet-500 font-medium resize-none"
+                        {/* Tải PDF câu 1-100 */}
+                        <input
+                          ref={listeningPdfInputRef}
+                          type="file"
+                          accept="image/*,.pdf"
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              setListeningPdfFile(e.target.files[0]);
+                            }
+                          }}
+                          className="hidden"
                         />
+                        <div
+                          onClick={() => listeningPdfInputRef.current?.click()}
+                          className="border border-dashed border-slate-300 hover:border-blue-400 bg-white rounded-xl p-3.5 text-center cursor-pointer transition"
+                        >
+                          <p className="text-xs font-bold text-slate-800">
+                            {listeningPdfFile ? listeningPdfFile.name : 'Tải File Đề Thi Nghe (PDF / Ảnh Câu 1-100)'}
+                          </p>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            {listeningPdfFile ? 'Bấm để đổi file tài liệu khác' : 'Kéo & thả file PDF hoặc ảnh đề thi'}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+
+                    {/* Ô 2: PHẦN ĐỌC (NẾU ĐƯỢC CHỌN) */}
+                    {activeSkillsList.includes('READING') && (
+                      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                            Phần 2: Kỹ Năng Đọc (Reading)
+                          </span>
+                          <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                            Yêu cầu PDF / Ảnh
+                          </span>
+                        </div>
+
+                        <input
+                          ref={readingPdfInputRef}
+                          type="file"
+                          accept="image/*,.pdf"
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              setReadingPdfFile(e.target.files[0]);
+                            }
+                          }}
+                          className="hidden"
+                        />
+                        <div
+                          onClick={() => readingPdfInputRef.current?.click()}
+                          className="border border-dashed border-slate-300 hover:border-emerald-400 bg-white rounded-xl p-8 text-center cursor-pointer transition h-[155px] flex flex-col items-center justify-center"
+                        >
+                          <p className="text-xs font-bold text-slate-800">
+                            {readingPdfFile ? readingPdfFile.name : 'Tải File Đề Thi Đọc (PDF / Ảnh Câu 101-200)'}
+                          </p>
+                          <p className="text-[11px] text-slate-400 mt-1 max-w-xs">
+                            {readingPdfFile
+                              ? 'Bấm để đổi file tài liệu khác'
+                              : 'Kéo & thả file tài liệu PDF hoặc bộ ảnh đề thi đọc vào đây'}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Ô 3: PHẦN VIẾT (NẾU CHỌN 3 HOẶC 4 KỸ NĂNG HOẶC PRACTICE/DRILL VIẾT) */}
+                    {activeSkillsList.includes('WRITING') && (
+                      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                            {(examType === 'TOPIK_I' || examType === 'TOPIK_II') ? 'Phần 3: Kỹ Năng Viết (쓰기)' : 'Kỹ Năng Viết (Writing)'}
+                          </span>
+                          <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                            Đề bài viết / PDF
+                          </span>
+                        </div>
+
+                        {/* Tải PDF đề thi Viết */}
+                        <input
+                          ref={writingPdfInputRef}
+                          type="file"
+                          accept="image/*,.pdf"
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              setWritingPdfFile(e.target.files[0]);
+                            }
+                          }}
+                          className="hidden"
+                        />
+                        <div
+                          onClick={() => writingPdfInputRef.current?.click()}
+                          className="border border-dashed border-slate-300 hover:border-amber-400 bg-white rounded-xl p-8 text-center cursor-pointer transition h-[155px] flex flex-col items-center justify-center"
+                        >
+                          <p className="text-xs font-bold text-slate-800">
+                            {writingPdfFile ? writingPdfFile.name : 'Tải File Đề Thi Viết (PDF / Đề Bài Tự Luận)'}
+                          </p>
+                          <p className="text-[11px] text-slate-400 mt-1 max-w-xs">
+                            {writingPdfFile ? 'Bấm để đổi file khác' : 'Kéo & thả file PDF đề bài viết hoặc phiếu câu hỏi'}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Ô 4: PHẦN NÓI (CHỈ KHI TOEIC 4 KỸ NĂNG HOẶC PRACTICE/DRILL NÓI) */}
+                    {activeSkillsList.includes('SPEAKING') && (
+                      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                            Kỹ Năng Nói (Speaking)
+                          </span>
+                          <span className="text-[11px] font-semibold text-violet-700 bg-violet-50 px-2 py-0.5 rounded border border-violet-200">
+                            Audio & Prompt đề thi
+                          </span>
+                        </div>
+
+                        {/* Tải Audio Prompt bài Nói */}
+                        <input
+                          ref={speakingAudioInputRef}
+                          type="file"
+                          accept="audio/*,.pdf"
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              setSpeakingAudioFile(e.target.files[0]);
+                            }
+                          }}
+                          className="hidden"
+                        />
+                        <div
+                          onClick={() => speakingAudioInputRef.current?.click()}
+                          className="border border-dashed border-slate-300 hover:border-violet-400 bg-white rounded-xl p-8 text-center cursor-pointer transition h-[155px] flex flex-col items-center justify-center"
+                        >
+                          <p className="text-xs font-bold text-slate-800">
+                            {speakingAudioFile ? speakingAudioFile.name : 'Tải File Prompt Nói / Audio Đề Thi'}
+                          </p>
+                          <p className="text-[11px] text-slate-400 mt-1 max-w-xs">
+                            {speakingAudioFile ? 'Bấm để đổi file khác' : 'Kéo & thả file MP3/WAV âm thanh đề bài nói hoặc PDF kịch bản'}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* ========================================================================= */}
               {/* STUDIO DUYỆT & TINH CHỈNH CÂU HỎI TRỰC QUAN (THUẦN CHỮ KHÔNG ICON) */}
               {/* ========================================================================= */}
-              {hasScanned && (
+              {(hasScanned || examScanCategory === 'DRILL') && (
                 <div className="space-y-6">
                   {/* THANH TABS KỸ NĂNG TRONG STUDIO */}
                   <div className="bg-white border border-slate-200 rounded-3xl p-4 px-6 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1338,12 +1953,14 @@ const VocaScanDocumentPage = () => {
                       {activeSkillsList.includes('LISTENING') && (
                         <button
                           type="button"
-                          onClick={() => setActiveReviewSkill('LISTENING')}
-                          className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                            activeReviewSkill === 'LISTENING'
-                              ? 'bg-blue-600 text-white shadow-xs'
-                              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                          }`}
+                          onClick={() => {
+                            setActiveReviewSkill('LISTENING');
+                            setActivePartNumber(1);
+                          }}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${activeReviewSkill === 'LISTENING'
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                            }`}
                         >
                           Kỹ Năng Nghe ({listeningQuestions.length} câu)
                         </button>
@@ -1352,12 +1969,14 @@ const VocaScanDocumentPage = () => {
                       {activeSkillsList.includes('READING') && (
                         <button
                           type="button"
-                          onClick={() => setActiveReviewSkill('READING')}
-                          className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                            activeReviewSkill === 'READING'
-                              ? 'bg-blue-600 text-white shadow-xs'
-                              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                          }`}
+                          onClick={() => {
+                            setActiveReviewSkill('READING');
+                            setActivePartNumber(examType === 'TOEIC' ? 5 : 1);
+                          }}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${activeReviewSkill === 'READING'
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                            }`}
                         >
                           Kỹ Năng Đọc ({readingQuestions.length} câu)
                         </button>
@@ -1366,12 +1985,14 @@ const VocaScanDocumentPage = () => {
                       {activeSkillsList.includes('WRITING') && (
                         <button
                           type="button"
-                          onClick={() => setActiveReviewSkill('WRITING')}
-                          className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                            activeReviewSkill === 'WRITING'
-                              ? 'bg-blue-600 text-white shadow-xs'
-                              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                          }`}
+                          onClick={() => {
+                            setActiveReviewSkill('WRITING');
+                            setActivePartNumber(1);
+                          }}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${activeReviewSkill === 'WRITING'
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                            }`}
                         >
                           Kỹ Năng Viết ({writingQuestions.length} câu)
                         </button>
@@ -1380,25 +2001,53 @@ const VocaScanDocumentPage = () => {
                       {activeSkillsList.includes('SPEAKING') && (
                         <button
                           type="button"
-                          onClick={() => setActiveReviewSkill('SPEAKING')}
-                          className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                            activeReviewSkill === 'SPEAKING'
-                              ? 'bg-blue-600 text-white shadow-xs'
-                              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                          }`}
+                          onClick={() => {
+                            setActiveReviewSkill('SPEAKING');
+                            setActivePartNumber(1);
+                          }}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${activeReviewSkill === 'SPEAKING'
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                            }`}
                         >
                           Kỹ Năng Nói ({speakingQuestions.length} câu)
                         </button>
                       )}
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={handleAddQuestion}
-                      className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 text-xs font-bold rounded-xl transition cursor-pointer self-start sm:self-auto"
-                    >
-                      + Thêm câu hỏi vào phần này
-                    </button>
+                    {/* BÊN PHẢI: FILTER DẠNG BÀI VÀ NÚT THÊM CÂU HỎI TRÊN CÙNG COMPONENT XEM CHI TIẾT KỸ NĂNG */}
+                    <div className="flex items-center gap-3 flex-wrap self-start sm:self-auto">
+                      {examScanCategory === 'DRILL' && availableDrillRules.length > 0 && (
+                        <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+                          <span className="text-xs font-bold text-slate-800 shrink-0">
+                            Dạng bài luyện tập:
+                          </span>
+                          <CustomSelect
+                            value={drillPartCode}
+                            onChange={(val) => setDrillPartCode(val)}
+                            options={drillOptions}
+                            placeholder="Chọn dạng bài..."
+                            rounded="full"
+                            variant="blue-border"
+                            dropdownPosition="right"
+                            className="w-[280px] sm:w-[320px]"
+                            buttonClassName="py-2 px-4 shadow-2xs font-bold text-slate-800"
+                            dropdownClassName="min-w-[320px] max-w-sm sm:w-[360px]"
+                            searchable={drillOptions.length > 5}
+                          />
+                        </div>
+                      )}
+
+                      {examScanCategory !== 'FULL_TEST' && examScanCategory !== 'PRACTICE' && (
+                        <button
+                          type="button"
+                          onClick={examScanCategory === 'DRILL' ? handleAddDrillQuestion : handleAddQuestion}
+                          className="px-5 py-2.5 rounded-full border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-slate-800 hover:text-blue-700 shadow-2xs cursor-pointer transition shrink-0"
+                        >
+                          + Thêm câu hỏi vào phần này
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* THÔNG BÁO LƯU THÀNH CÔNG NẾU CÓ */}
@@ -1418,21 +2067,16 @@ const VocaScanDocumentPage = () => {
                   {/* ========================================================================= */}
                   {/* THANH PHÂN TRANG THEO PART CÓ ANIMATION (CHẾ ĐỘ FULL_TEST) */}
                   {/* ========================================================================= */}
-                  {examScanCategory === 'FULL_TEST' && (activeReviewSkill === 'LISTENING' || activeReviewSkill === 'READING') && currentSkillParts.length > 0 && (
-                    <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-2xs space-y-4">
+                  {examScanCategory === 'FULL_TEST' && currentSkillParts.length > 1 && (
+                    <div
+                      key={`part-nav-${examType}-${activeReviewSkill}`}
+                      className="bg-white border border-slate-200 rounded-3xl p-5 shadow-2xs space-y-4"
+                    >
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-100">
                         <div>
-                          <div className="flex items-center gap-2">
-                            <span className="px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-blue-100 text-blue-800 border border-blue-200">
-                              Phân Trang Theo Part / Dạng Bài
-                            </span>
-                            <h4 className="text-sm font-bold text-slate-900 tracking-tight">
-                              {currentSkillParts.find((p) => p.partNumber === activePartNumber)?.partName || `Part ${activePartNumber}`}
-                            </h4>
-                          </div>
-                          <p className="text-xs text-slate-500 mt-1">
-                            {currentSkillParts.find((p) => p.partNumber === activePartNumber)?.description}
-                          </p>
+                          <h4 className="text-sm font-bold text-slate-900 tracking-tight">
+                            {currentSkillParts.find((p) => p.partNumber === activePartNumber)?.partName || `Part ${activePartNumber}`}
+                          </h4>
                         </div>
 
                         {/* NÚT ĐIỀU HƯỚNG TRANG TRƯỚC / TIẾP THEO */}
@@ -1452,7 +2096,7 @@ const VocaScanDocumentPage = () => {
                           </button>
 
                           <span className="text-xs font-extrabold text-slate-600 px-1">
-                            Part {activePartNumber} / {currentSkillParts[currentSkillParts.length - 1]?.partNumber}
+                            {examType === 'TOEIC' ? 'Part' : 'Dạng'} {activePartNumber} / {currentSkillParts[currentSkillParts.length - 1]?.partNumber}
                           </span>
 
                           <button
@@ -1477,16 +2121,15 @@ const VocaScanDocumentPage = () => {
                           const isActive = p.partNumber === activePartNumber;
                           return (
                             <button
-                              key={p.partNumber}
+                              key={`part-btn-${activeReviewSkill}-${p.partNumber}`}
                               type="button"
                               onClick={() => setActivePartNumber(p.partNumber)}
-                              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
-                                isActive
-                                  ? 'bg-blue-600 text-white shadow-xs scale-102'
-                                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900'
-                              }`}
+                              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${isActive
+                                ? 'bg-blue-600 text-white shadow-xs scale-102'
+                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900'
+                                }`}
                             >
-                              {p.shortLabel}: {p.questionRange}
+                              {p.partName}
                             </button>
                           );
                         })}
@@ -1498,9 +2141,135 @@ const VocaScanDocumentPage = () => {
                   {/* DANH SÁCH CÂU HỎI THEO PART & PASSAGE GROUP CÓ ANIMATION CHUYỂN TRANG */}
                   {/* ========================================================================= */}
                   <div key={`${activeReviewSkill}-${activePartNumber}-${examScanCategory}`} className="space-y-5 transition-all duration-300 ease-in-out animate-fadeIn">
+                    {/* ========================================================================= */}
+                    {/* KHUNG BORDER TIÊU ĐỀ & CHỈ DẪN CỦA TOÀN BỘ NHÓM CÂU HỎI (THEO BLUEPRINT) */}
+                    {/* NẰM Ở TRÊN CÂU ĐẦU TIÊN - HỖ TRỢ CHỌN TITLE VÀ NÚT SỬA BÊN PHẢI TRONG DRILL */}
+                    {/* ========================================================================= */}
+                    {examScanCategory === 'DRILL' ? (
+                      <div className="bg-white border-2 border-slate-800 rounded-2xl p-5 sm:p-6 shadow-2xs space-y-4">
+                        {/* THANH ĐIỀU KHIỂN: BÊN TRÁI LÀ SELECT TITLE, BÊN PHẢI LÀ NÚT SỬA */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                          <div className="flex items-center gap-2.5 flex-wrap">
+                            <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">
+                              Chọn tiêu đề dạng bài:
+                            </span>
+                            <div className="w-[280px] sm:w-[320px]">
+                              <CustomSelect
+                                value={drillPartCode}
+                                onChange={(selectedCode) => {
+                                  setDrillPartCode(selectedCode);
+                                  const targetRule = availableDrillRules.find((r) => r.partCode === selectedCode);
+                                  if (targetRule && targetRule.title) {
+                                    setDrillCustomTitles((prev) => ({
+                                      ...prev,
+                                      [selectedCode]: prev[selectedCode] || targetRule.title || '',
+                                    }));
+                                  }
+                                  setIsEditingDrillTitle(false);
+                                }}
+                                options={drillOptions}
+                                placeholder="Chọn mẫu tiêu đề..."
+                                rounded="xl"
+                                dropdownPosition="left"
+                                dropdownClassName="w-full min-w-[300px] max-w-md"
+                              />
+                            </div>
+                          </div>
+
+                          {/* NÚT SỬA / HỦY / LƯU NẰM BÊN PHẢI */}
+                          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                            {isEditingDrillTitle ? (
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setIsEditingDrillTitle(false)}
+                                  className="px-3.5 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-600 transition cursor-pointer"
+                                >
+                                  Hủy
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setDrillCustomTitles((prev) => ({
+                                      ...prev,
+                                      [drillPartCode]: tempDrillTitleInput,
+                                    }));
+                                    setIsEditingDrillTitle(false);
+                                  }}
+                                  className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition cursor-pointer shadow-xs"
+                                >
+                                  Lưu
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setTempDrillTitleInput(effectiveDrillTitle);
+                                  setIsEditingDrillTitle(true);
+                                }}
+                                className="px-4 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-800 text-xs font-bold transition cursor-pointer shadow-2xs flex items-center gap-1.5"
+                              >
+                                <span>Sửa</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* NỘI DUNG TIÊU ĐỀ: HIỂN THỊ DẠNG TEXT HOẶC TEXTAREA KHI BẤM SỬA */}
+                        {isEditingDrillTitle ? (
+                          <div className="space-y-1.5">
+                            <textarea
+                              rows={3}
+                              value={tempDrillTitleInput}
+                              onChange={(e) => setTempDrillTitleInput(e.target.value)}
+                              placeholder="Nhập nội dung tiêu đề hoặc chỉ dẫn cho dạng bài..."
+                              className="w-full px-4 py-3 rounded-xl border-2 border-blue-500 bg-blue-50/20 text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+                              autoFocus
+                            />
+                            <p className="text-[11px] text-slate-400">
+                              * Bạn có thể tự do chỉnh sửa yêu cầu, số lượng từ hoặc hướng dẫn chi tiết theo đề bài thực tế.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="text-xs sm:text-sm text-slate-800 leading-relaxed font-medium whitespace-pre-line">
+                            {effectiveDrillTitle || (
+                              <span className="text-slate-400 italic">
+                                Chưa có tiêu đề hoặc chỉ dẫn. Bấm "Sửa" nằm bên phải để thêm tiêu đề.
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      (() => {
+                        const currentRule =
+                          EXAM_BLUEPRINTS[examType]?.[activeReviewSkill]?.questionRules.find((r) => {
+                            const match = r.partCode.match(/_P(\d+)/i) || r.partCode.match(/PART[_-]?(\d+)/i) || r.partCode.match(/(\d+)$/);
+                            const pNum = match ? parseInt(match[1], 10) : 1;
+                            return pNum === activePartNumber;
+                          }) ||
+                          (displayedQuestions[0]
+                            ? getQuestionRule(examType, activeReviewSkill, displayedQuestions[0].questionNumber)
+                            : undefined);
+
+                        const groupTitleText = currentRule?.title;
+
+                        if (!groupTitleText) return null;
+
+                        return (
+                          <div className="bg-white border-2 border-slate-800 rounded-2xl p-5 sm:p-6 shadow-2xs">
+                            <div className="text-xs sm:text-sm text-slate-800 leading-relaxed font-medium whitespace-pre-line">
+                              {groupTitleText}
+                            </div>
+                          </div>
+                        );
+                      })()
+                    )}
+
                     {groupedDisplayItems.map((item, itemIdx) => {
                       if (item.type === 'SINGLE') {
-                        return renderQuestionCard(item.questions[0], itemIdx);
+                        return renderQuestionCard(item.questions[0], itemIdx, false);
                       }
 
                       // KHỐI NHÓM CÂU HỎI DÙNG CHUNG MEDIA / BÀI ĐỌC (PASSAGE GROUP)
@@ -1509,23 +2278,13 @@ const VocaScanDocumentPage = () => {
                           key={item.groupId || `group-${itemIdx}`}
                           className="bg-slate-50/70 border-2 border-dashed border-blue-200/90 rounded-3xl p-5 md:p-6 space-y-4"
                         >
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-blue-100">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-blue-600 text-white shadow-2xs">
-                                  Nhóm câu liên kết ({item.questions.length} câu)
-                                </span>
-                                <h4 className="text-xs font-bold text-blue-900 tracking-wide uppercase">
-                                  {item.groupTitle}
-                                </h4>
-                              </div>
-                              <p className="text-xs text-slate-500 mt-1">
-                                Các câu hỏi dưới đây cùng sử dụng chung nội dung bài đọc hoặc tài liệu đính kèm này.
-                              </p>
-                            </div>
+                          <div className="flex items-center justify-between pb-3 border-b border-blue-100">
+                            <span className="px-3 py-1 rounded-lg text-xs font-extrabold uppercase bg-blue-600 text-white shadow-2xs">
+                              Nhóm câu liên kết ({item.questions.length} câu)
+                            </span>
 
-                            <span className="text-[11px] font-bold text-blue-700 bg-white px-2.5 py-1 rounded-lg border border-blue-200 self-start sm:self-auto">
-                              Passage Group: {item.groupId}
+                            <span className="text-xs font-bold text-blue-700 bg-white px-3 py-1 rounded-lg border border-blue-200">
+                              Câu {item.questions[0]?.questionNumber} - {item.questions[item.questions.length - 1]?.questionNumber}
                             </span>
                           </div>
 
@@ -1543,22 +2302,19 @@ const VocaScanDocumentPage = () => {
 
                           {/* DANH SÁCH CÁC CÂU HỎI CON TRONG NHÓM */}
                           <div className="space-y-4 pt-1">
-                            {item.questions.map((subQ, subIdx) => renderQuestionCard(subQ, subIdx))}
+                            {item.questions.map((subQ, subIdx) =>
+                              renderQuestionCard(
+                                subQ,
+                                subIdx,
+                                subIdx > 0, // isGroupSubQuestion: chỉ câu đầu nhóm mới chọn ảnh
+                                item.questions[0] // Câu đầu tiên của nhóm
+                              )
+                            )}
                           </div>
                         </div>
                       );
                     })}
 
-                    {/* NÚT THÊM CÂU HỎI MỚI NẰM NGAY DƯỚI CÂU HỎI CUỐI CÙNG CỦA DANH SÁCH */}
-                    <div className="pt-2">
-                      <button
-                        type="button"
-                        onClick={handleAddQuestion}
-                        className="w-full py-4 bg-white hover:bg-slate-50 border-2 border-dashed border-slate-300 hover:border-blue-400 rounded-2xl text-xs font-bold text-slate-700 hover:text-blue-700 transition cursor-pointer flex items-center justify-center gap-2 shadow-2xs"
-                      >
-                        + Thêm câu hỏi mới vào danh sách này
-                      </button>
-                    </div>
                   </div>
 
                   {/* BOTTOM BAR CỐ ĐỊNH DUYỆT ĐỀ (THUẦN CHỮ KHÔNG ICON) */}
@@ -1573,13 +2329,15 @@ const VocaScanDocumentPage = () => {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={handleTriggerAnalyze}
-                        className="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-700 transition cursor-pointer"
-                      >
-                        Quét lại đề
-                      </button>
+                      {examScanCategory !== 'DRILL' && (
+                        <button
+                          type="button"
+                          onClick={handleTriggerAnalyze}
+                          className="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-700 transition cursor-pointer"
+                        >
+                          Quét lại đề
+                        </button>
+                      )}
 
                       <button
                         type="button"
@@ -1728,11 +2486,10 @@ const VocaScanDocumentPage = () => {
                           <button
                             type="button"
                             onClick={() => setPageLevelFilters((prev) => ({ ...prev, [page.pageNumber]: 'ALL' }))}
-                            className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
-                              currentFilter === 'ALL'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                            }`}
+                            className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${currentFilter === 'ALL'
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                              }`}
                           >
                             Tất cả ({pageVocabs.length})
                           </button>
@@ -1743,11 +2500,10 @@ const VocaScanDocumentPage = () => {
                                 key={lvl}
                                 type="button"
                                 onClick={() => setPageLevelFilters((prev) => ({ ...prev, [page.pageNumber]: lvl }))}
-                                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
-                                  currentFilter === lvl
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                                }`}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${currentFilter === lvl
+                                  ? 'bg-blue-600 text-white'
+                                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                                  }`}
                               >
                                 {lvl} ({count})
                               </button>
@@ -1773,16 +2529,15 @@ const VocaScanDocumentPage = () => {
                                   })
                                 );
                               }}
-                              className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 ${
-                                v.selected
-                                  ? 'border-blue-500 bg-blue-50/40'
-                                  : 'border-slate-200 bg-white hover:border-slate-300'
-                              }`}
+                              className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 ${v.selected
+                                ? 'border-blue-500 bg-blue-50/40'
+                                : 'border-slate-200 bg-white hover:border-slate-300'
+                                }`}
                             >
                               <input
                                 type="checkbox"
                                 checked={v.selected}
-                                onChange={() => {}}
+                                onChange={() => { }}
                                 className="w-4 h-4 rounded text-blue-600 cursor-pointer mt-0.5"
                               />
                               <div className="flex-1 min-w-0">
@@ -1861,6 +2616,16 @@ const VocaScanDocumentPage = () => {
               </div>
             </div>
           )}
+
+          {/* ========================================================================= */}
+          {/* MODAL CẢNH BÁO LỖI VÀ CHẶN LƯU KHI THIẾU THÔNG TIN (CHỈ HIỆN KHI BẤM GỬI) */}
+          {/* ========================================================================= */}
+          <ExamValidationModal
+            isOpen={isValidationModalOpen}
+            onClose={() => setIsValidationModalOpen(false)}
+            errors={validationErrors}
+            onScrollToQuestion={handleScrollToQuestion}
+          />
         </main>
       </div>
     </div>

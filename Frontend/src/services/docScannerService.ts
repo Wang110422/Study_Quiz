@@ -46,13 +46,6 @@ export interface OcrApiResponse {
 export interface ScannedExamQuestion {
     id: string;
     questionNumber: number;
-    content: string;
-    options: { key: 'A' | 'B' | 'C' | 'D'; text: string }[];
-    correctAnswer: 'A' | 'B' | 'C' | 'D' | string;
-    explanation?: string;
-    imageUrl?: string;
-    audioTimestamp?: number;
-    selected: boolean;
     partNumber?: number;
     partName?: string;
     passageGroupId?: string;
@@ -60,6 +53,16 @@ export interface ScannedExamQuestion {
     passageText?: string;
     passageAudioUrl?: string;
     passageImageUrl?: string;
+    passageImageUrls?: string[];
+    content: string;
+    options: { key: 'A' | 'B' | 'C' | 'D' | string; text: string; imageUrl?: string }[];
+    correctAnswer: 'A' | 'B' | 'C' | 'D' | string;
+    explanation?: string;
+    imageUrl?: string;
+    imageUrls?: string[];
+    audioUrl?: string;
+    audioTimestamp?: number;
+    selected: boolean;
 }
 
 // Từ điển cơ sở dữ liệu mẫu fallback nếu API không phản hồi
@@ -476,14 +479,14 @@ export const docScannerCache = {
                 memoryScanCache = parsed;
                 return parsed;
             }
-        } catch (e) {}
+        } catch (e) { }
         return null;
     },
     clear: () => {
         memoryScanCache = null;
         try {
             sessionStorage.removeItem(CACHE_KEY);
-        } catch (e) {}
+        } catch (e) { }
     },
 };
 

@@ -41,7 +41,7 @@ const getMediaAudioUrl = (audioUrl?: string | null): string => {
   // Xử lý tên file hoặc đường dẫn Windows: D:\Wang\English\Toeic\Audio\E26-T09-62-64
   const filename = audioUrl.split(/[\\/]/).pop() || audioUrl;
   const cleanName = filename.endsWith('.mp3') ? filename : `${filename}.mp3`;
-  return `http://localhost:8080/media/audio/${cleanName}`;
+  return `${import.meta.env.VITE_API_URL}/api/media/audio/${cleanName}`;
 };
 
 const getMediaImageUrls = (imageUrl?: string | null): string[] => {
@@ -72,7 +72,7 @@ const getMediaImageUrls = (imageUrl?: string | null): string[] => {
     const filename = item.split(/[\\/]/).pop() || item;
     // Chuẩn hóa đuôi ảnh: ưu tiên .png theo kho ảnh TOEIC, hoặc giữ .jpg, .jpeg, .webp
     const cleanName = filename.match(/\.(png|jpg|jpeg|webp|gif)$/i) ? filename : `${filename}.png`;
-    return `http://localhost:8080/media/image/${cleanName}`;
+    return `${import.meta.env.VITE_API_URL}/api/media/image/${cleanName}`;
   });
 };
 
@@ -883,8 +883,8 @@ const MockExamRoomPage = () => {
                                 type="button"
                                 onClick={() => handleSelectAnswer(q.id, opt)}
                                 className={`p-3.5 rounded-xl border text-xs text-left transition flex items-center justify-between cursor-pointer ${isSelected
-                                    ? 'border-purple-600 bg-purple-100 text-purple-950 font-bold shadow-xs'
-                                    : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                                  ? 'border-purple-600 bg-purple-100 text-purple-950 font-bold shadow-xs'
+                                  : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
                                   }`}
                               >
                                 <span className="line-clamp-2">{opt}</span>
@@ -1003,10 +1003,10 @@ const MockExamRoomPage = () => {
                           type="button"
                           onClick={() => handleJumpToQuestion(item.sectionIdx, item.groupIdx)}
                           className={`h-9 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer ${isCurrentGroup
-                              ? 'bg-[#1F0038] text-white shadow-xs ring-2 ring-purple-400'
-                              : isAnswered
-                                ? 'bg-purple-100 text-purple-900 border border-purple-300'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            ? 'bg-[#1F0038] text-white shadow-xs ring-2 ring-purple-400'
+                            : isAnswered
+                              ? 'bg-purple-100 text-purple-900 border border-purple-300'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                             }`}
                           title={`Câu ${item.qIndexInExam}`}
                         >
